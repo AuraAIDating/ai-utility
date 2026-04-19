@@ -41,7 +41,7 @@ public final class NpiValidator {
 
 ---
 
-## 3. HCPCS and ICD-10 Validation (POL-126)
+## 3. HCPCS and ICD-10 Validation
 
 ### HCPCS Level II Format
 
@@ -70,7 +70,7 @@ public final class Icd10Validator {
 }
 ```
 
-### Levenshtein Distance Code Correction (POL-126)
+### Levenshtein Distance Code Correction
 
 When OCR extracts a code that doesn't match the reference table, use Levenshtein to suggest corrections.
 

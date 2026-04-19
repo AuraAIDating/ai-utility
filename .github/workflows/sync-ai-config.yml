@@ -1,0 +1,73 @@
+name: Sync AI Config to Polaris Repos
+
+# Syncs .claude, .github/prompts, and .opencode directories from this utility repo
+# to all downstream Polaris service repos on merge to main.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.claude/**'
+      - '.github/prompts/**'
+      - '.opencode/**'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # ──────────────────────────────────────────────────────────────────
+        # ADD NEW REPOS HERE as the team creates new Polaris services.
+        # Format: { repo: "<org>/<repo-name>" }
+        # ──────────────────────────────────────────────────────────────────
+        target:
+          - { repo: "waveum/polaris-order-connector" }
+          - { repo: "waveum/polaris-order-workflow-agent" }
+          # - { repo: "waveum/polaris-<new-service>" }
+
+    steps:
+      - name: Checkout source (this repo)
+        uses: actions/checkout@v4
+        with:
+          path: source
+
+      - name: Checkout target repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ matrix.target.repo }}
+          token: ${{ secrets.AI_UTILITY_TOKEN }}
+          path: target
+
+      - name: Sync directories
+        run: |
+          # Directories to sync from this utility repo to each target repo.
+          # Uses rsync to add/update files without deleting target-only files.
+          # Add or remove directories here if the sync scope changes.
+          SYNC_DIRS=(".claude" ".github/prompts" ".opencode")
+
+          for dir in "${SYNC_DIRS[@]}"; do
+            if [ -d "source/${dir}" ]; then
+              mkdir -p "target/${dir}"
+              # --archive preserves permissions/timestamps
+              # --delete removes files in target that no longer exist in source
+              #   (only within synced dirs — not the whole repo)
+              # Remove --delete if target repos should keep their own additions
+              rsync --archive --delete "source/${dir}/" "target/${dir}/"
+              echo "Synced: ${dir}"
+            else
+              echo "Skipped (not found in source): ${dir}"
+            fi
+          done
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          path: target
+          token: ${{ secrets.AI_UTILITY_TOKEN }}
+          commit-message: "fix(POL-00): Synced AI Skills"
+          title: "fix(POL-00): Synced AI Skills"
+          body: "Synced AI skills from Polaris AI Utility"
+          branch: chore/sync-ai-config
+          delete-branch: true
+          labels: automation, ai-config
