@@ -23,7 +23,7 @@ jobs:
         # ──────────────────────────────────────────────────────────────────
         target:
           - { repo: "waveum/polaris-order-connector" }
-          # - { repo: "waveum/polaris-order-workflow-agent" }
+          - { repo: "waveum/polaris-order-workflow-agent" }
           # - { repo: "waveum/polaris-<new-service>" }
 
     steps:
