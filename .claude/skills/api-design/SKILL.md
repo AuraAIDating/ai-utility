@@ -532,3 +532,4 @@ Before shipping a new endpoint:
 - [ ] `@SecurityRequirement(name = "bearerAuth")` in spec for protected operations
 - [ ] Rate limiting configured for public-facing endpoints
 - [ ] P99 latency verified < 100ms in staging before merge
+

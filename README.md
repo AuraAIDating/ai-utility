@@ -136,4 +136,3 @@ To add a new skill:
 5. Raise a PR against this repository for review.
 
 Changes merged to `main` will automatically sync to all downstream Polaris repos via the GitHub Actions workflow.
-
