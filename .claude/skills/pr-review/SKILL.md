@@ -91,56 +91,36 @@ Only launch agents that are relevant to the files changed. For example, skip the
 
 ---
 
-#### Agent 3: Unit Test Review
+#### Agent 3: Java Development Review (Conditional)
 
-**Skill reference:** `.claude/skills/java-unit-testing/SKILL.md`
+**Skill reference:** `.claude/skills/java-development/SKILL.md`
 
-**Applies when:** Java source files are added or modified.
+**Applies when:** Java source files (`.java`) are changed. **Skip entirely if no Java files are in the diff.**
 
 **Checks:**
-- Unit tests exist for new/modified classes
-- Tests cover both happy and unhappy paths
-- JUnit 5, Mockito, and AssertJ used correctly
-- Test naming conventions followed
-- Edge cases covered (null, empty, boundary values)
-- No logic in tests; tests are readable and focused
-- Mocking is appropriate (not over-mocking)
+- **Coding Standards** — Naming (PascalCase/camelCase), immutability (records, final fields), Optional usage, streams, exception handling, generics, package structure
+- **Spring Boot Patterns** — Layered architecture (controller -> service -> repository), constructor injection, DTOs with validation, `@RestControllerAdvice` error handling, async processing, SLF4J structured logging, pagination
+- **Unit Testing** — Tests exist for new/modified classes covering happy and unhappy paths. JUnit 5, Mockito, AssertJ used correctly. `@DisplayName`, `@Nested`, given/when/then pattern, `@ParameterizedTest` for variants
+- **TDD & Web Layer** — MockMvc tests for controllers, `@DataJpaTest` for repositories, test data builders
+- **Code Formatting** — `./gradlew spotlessApply` run (Google Java Style via Spotless)
+- **Verification** — Build succeeds, static analysis (checkstyle/pmd/spotbugs) passes, test coverage adequate (JaCoCo), no secrets in source, no `System.out.println`
 
 ---
 
-#### Agent 4: Component Test Review
+#### Agent 4: BDD & Component Test Review
 
-**Skill reference:** `.claude/skills/component-tests/SKILL.md`
+**Skill reference:** `.claude/skills/testing/SKILL.md`
 
-**Applies when:** New endpoints, services, or integrations are added.
+**Applies when:** Feature files, step definitions, acceptance tests, or component tests are changed, or new endpoints/services are added.
 
 **Checks:**
-- Component tests exist for new features
-- Black-box testing via HTTP (RestAssured)
-- Testcontainers used (app runs as Docker container)
-- No Spring context in test JVM
-- Scenarios simulate real user behavior
-- No direct database or Kafka inspection in tests
+- **BDD Acceptance Tests** — Feature files follow Gherkin best practices, scenarios cover happy and unhappy paths, step definitions are reusable, `@SpringBootTest` with real Testcontainers (PostgreSQL + Kafka), no mocking, business-readable scenarios
+- **Component Tests** — Black-box testing via HTTP (RestAssured), app runs as Docker container via Testcontainers, no Spring context in test JVM, scenarios simulate real user behavior, no direct database or Kafka inspection
+- **Common** — Awaitility for async (no `Thread.sleep`), DataTables for structured input, `@smoke`/`@full` tags, containers start once, declarative Gherkin
 
 ---
 
-#### Agent 5: BDD/Cucumber Review
-
-**Skill reference:** `.claude/skills/bdd-cucumber/SKILL.md`
-
-**Applies when:** Feature files, step definitions, or acceptance test files are changed.
-
-**Checks:**
-- Feature files follow Gherkin best practices
-- Scenarios cover happy and unhappy paths
-- Step definitions are reusable and composable
-- @SpringBootTest with real Testcontainers (PostgreSQL + Kafka)
-- No mocking in acceptance tests
-- Scenarios are business-readable
-
----
-
-#### Agent 6: Healthcare Domain Review
+#### Agent 5: Healthcare Domain Review
 
 **Skill reference:** `.claude/skills/healthcare-domain/SKILL.md`
 
@@ -209,39 +189,7 @@ Only launch agents that are relevant to the files changed. For example, skip the
 
 ---
 
-#### Agent 10: Spring Boot Patterns Review
-
-**Skill reference:** `.claude/skills/springboot-patterns/SKILL.md`
-
-**Applies when:** Any Spring Boot source files are changed.
-
-**Checks:**
-- Architecture patterns (layered services, dependency injection)
-- REST API design within Spring context
-- Data access patterns
-- Caching configuration and usage
-- Async processing (@Async, CompletableFuture)
-- Logging (SLF4J, structured logging, MDC)
-- Configuration management (profiles, externalized config)
-
----
-
-#### Agent 11: Spring Boot Verification
-
-**Skill reference:** `.claude/skills/springboot-verification/SKILL.md`
-
-**Applies when:** Any Spring Boot source or config files are changed.
-
-**Checks:**
-- Build succeeds (`./gradlew build`)
-- Static analysis passes
-- Tests pass with adequate coverage
-- Security scan findings
-- Diff review for unintended changes
-
----
-
-#### Agent 12: Temporal Workflow Review (Conditional)
+#### Agent 10: Temporal Workflow Review (Conditional)
 
 **Skill reference:** `.claude/skills/temporal-developer/SKILL.md`
 
@@ -285,20 +233,26 @@ For each NFR violation found, cite the specific NFR from the Technical Design an
 
 ---
 
-#### Agent 14: Java Coding Standards Review
+#### Agent 14: Python Development Review (Conditional)
 
-**Skill reference:** `.claude/skills/java-coding-standards/SKILL.md`
+**Skill reference:** `.claude/skills/python-development/SKILL.md`
 
-**Applies when:** Any Java source files are changed.
+**Applies when:** Python source files (`.py`) are changed. **Skip entirely if no Python files are in the diff.**
 
 **Checks:**
-- Naming conventions (PascalCase classes, camelCase methods)
-- Immutability (records, final fields, unmodifiable collections)
-- Optional usage (no `.get()` without `.isPresent()`, no Optional fields)
-- Stream usage (prefer streams over imperative loops where readable)
-- Exception handling (custom exceptions, no catching generic Exception)
-- Generics usage
-- Package structure and project layout
+- Project structure follows src layout with layered architecture (api -> domain -> infrastructure)
+- FastAPI patterns (dependency injection, lifespan, Pydantic schemas, async endpoints)
+- Configuration via pydantic-settings (no hardcoded values)
+- RFC 7807 error responses with domain exceptions
+- Async patterns (SQLAlchemy async sessions, proper await usage)
+- Type hints on all function signatures (modern syntax: `list[str]`, `str | None`)
+- pytest unit tests exist with proper Arrange/Act/Assert structure
+- Component tests using httpx AsyncClient + Testcontainers
+- BDD tests using pytest-bdd with Gherkin feature files covering happy and unhappy paths
+- Structured logging via structlog (no PHI in logs)
+- Tooling configured in pyproject.toml (ruff, mypy, pytest)
+- No bare `except`, no mutable default arguments
+- Alembic migrations for database changes
 
 ---
 
@@ -382,26 +336,97 @@ Write the JSON to a temp file and use `--input` to avoid shell escaping issues.
 
 ## Comment Tone and Style
 
-**Be polite, constructive, and evidence-based.** Every comment should:
+**Be polite, constructive, and evidence-based.** Every comment MUST be backed by data — never flag an issue without concrete evidence.
 
 1. **State the severity and agent** — e.g., `**Critical** (Healthcare):` or `**Medium** (Kafka):`
 2. **Explain what is wrong** — Concisely, so the reader understands without deep reading
-3. **Explain why it matters** — Concrete scenario where the issue manifests
-4. **Suggest a fix** — Specific recommendation or code example
-5. **Reference the skill** — e.g., *Ref: kafka-patterns skill - idempotent consumers*
-6. **Be honest about uncertainty** — "This may be intentional, but..." or "Consider whether..."
-7. **Respect the author's intent** — "Consider using...", "This could be improved by..."
+3. **Back it with data** — Every claim must cite evidence. Examples of data-backed arguments:
+   - **Code evidence**: "This method is called 14 times across 3 services (grep confirms), so changing its signature is a breaking change"
+   - **Performance data**: "This query does a full table scan on `orders` (EXPLAIN shows Seq Scan). With 500K+ rows in production, this will degrade response times beyond the 200ms SLA"
+   - **Pattern evidence**: "The other 8 repositories in Polaris use `@Transactional(readOnly = true)` for read queries — this is the only service that omits it"
+   - **Specification reference**: "RFC 7807 requires a `type` URI field in error responses (Section 3.1). This endpoint returns `{\"error\": \"not found\"}` instead"
+   - **Test coverage**: "This service method has 4 code paths (2 if-branches x 2 states) but only 1 test covering the happy path. The null-input and error-state paths are untested"
+   - **Security evidence**: "This field contains PHI (patient date of birth) and is logged at INFO level on line 42. HIPAA §164.312(a)(1) requires access controls on PHI"
+   - **Dependency data**: "This version of jackson-databind (2.13.x) has CVE-2022-42003 (CVSS 7.5). The fixed version is 2.13.4.2+"
+4. **Explain why it matters** — Concrete scenario where the issue manifests, not hypothetical
+5. **Suggest a fix** — Specific recommendation or code example
+6. **Reference the skill** — e.g., *Ref: jpa-patterns skill - entity design*
+7. **Be honest about uncertainty** — "This may be intentional, but..." or "Consider whether..."
+8. **Respect the author's intent** — "Consider using...", "This could be improved by..."
+
+**Do NOT make claims without evidence.** If you cannot find data to support a concern, investigate further (read more code, check git history, search for usage) before raising it. If you still cannot find evidence, either drop the concern or explicitly state it as an observation rather than a finding.
 
 **Avoid:**
 - Flattery or filler ("Great job!", "Thanks for this!")
 - Accusatory tone ("You forgot to...", "You should have...")
 - Overstating severity — a style nit is not a critical bug
-- Vague complaints without evidence
+- Vague complaints without evidence — "this could be a problem" without showing why
+- Opinions disguised as facts — "this is wrong" without citing the standard or pattern it violates
 
 **Example good comment:**
-> **Medium** (JPA): `dateOfService` is mapped as `String`, which bypasses date validation and allows malformed values (e.g., `"not-a-date"`) to persist. If the DB column is a date type, Hibernate throws a runtime exception on insert. Consider `LocalDate` for type safety and date range queries.
+> **Medium** (JPA): `dateOfService` is mapped as `String`, which bypasses date validation and allows malformed values (e.g., `"not-a-date"`) to persist. The database column `orders.date_of_service` is type `DATE` (confirmed in migration V3__create_orders.sql:12), so Hibernate will throw `DataException` at runtime on insert. The other 6 date fields in this service use `LocalDate` — this is the only one mapped as String.
+>
+> Consider `LocalDate` for type safety and date range queries.
 >
 > *Ref: jpa-patterns skill - entity design*
+
+**Example bad comment:**
+> This should be LocalDate not String.
+
+## Severity Categories
+
+Every finding MUST be categorized. Group and present findings by severity in the summary.
+
+| Severity | When to use | Action required |
+|----------|-------------|-----------------|
+| **Critical** | Security vulnerabilities, PII/PHI exposure, data loss, broken functionality, missing auth | Must fix before merge |
+| **High** | Missing tests for critical paths, NFR violations, broken error handling, incorrect business logic | Should fix before merge |
+| **Medium** | Missing tests for edge cases, pattern violations, performance concerns, stale references | Fix recommended, merge at author's discretion |
+| **Low** | Style inconsistencies, minor naming issues, documentation gaps, cosmetic improvements | Optional, nice to have |
+| **Info** | Observations, suggestions, alternative approaches, knowledge sharing | No action required |
+
+## PII & PHI Data Detection
+
+**CRITICAL: Every review MUST scan for PII/PHI exposure.** Flag any data — or combination of data — that could identify a customer, patient, or individual.
+
+### What to scan for
+
+**Direct identifiers (flag immediately):**
+- Full names, first + last name combinations
+- Social Security Numbers (SSN), Medicare Beneficiary Identifiers (MBI)
+- Dates of birth, date of death
+- Phone numbers, email addresses, physical addresses
+- Medical record numbers, health plan beneficiary numbers
+- NPI associated with patient context
+- Device identifiers, serial numbers tied to patients
+- Biometric identifiers, facial photographs
+- IP addresses, URLs in patient context
+
+**Quasi-identifiers (flag when combined — 2+ together can re-identify):**
+- Age, gender, zip code (any 2 of 3 can identify 87% of US population per Sweeney 2000)
+- Diagnosis codes (ICD-10) + date of service + provider
+- HCPCS codes + quantity + date + zip code
+- Admission/discharge dates + facility
+- Race/ethnicity + geographic subdivision + age range
+
+### Where to check
+
+- **Log statements** — `log.info()`, `log.debug()`, `log.error()` — PII must never appear in logs
+- **Error messages** — Exception messages, API error responses, problem detail bodies
+- **API responses** — Response DTOs, JSON serialization — check what's exposed to clients
+- **Kafka messages** — Event payloads — check if PII is in message body or headers
+- **Database queries in logs** — SQL with parameter values that contain PII
+- **Test fixtures** — Hardcoded realistic-looking PII in test data (use synthetic data instead)
+- **Comments and TODOs** — Developers sometimes paste real data in comments
+- **Configuration files** — Connection strings, API keys, tokens with embedded PII
+
+### How to flag
+
+PII/PHI findings are always **Critical** severity:
+
+> **Critical** (PII): Patient date of birth `patientDob` is included in the error response at `OrderController.java:87`. This field is PHI under HIPAA §164.514(b)(2)(i) and must not be exposed in API responses. The other error responses in this controller (lines 45, 62, 78) correctly omit patient details — this is the only one that leaks.
+>
+> Suggested fix: Remove `patientDob` from the error response. Return only the order ID and error type.
 
 ## Edge Cases
 
