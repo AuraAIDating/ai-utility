@@ -28,6 +28,7 @@ jobs:
           - { repo: "waveum/polaris-notification-service" }
           - { repo: "waveum/polaris-infra" }
           - { repo: "waveum/polaris-email-integration" }
+          - { repo: "waveum/polaris-training-modeling" }
           # - { repo: "waveum/polaris-<new-service>" }
 
     steps:
