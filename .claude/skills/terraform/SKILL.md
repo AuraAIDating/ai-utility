@@ -38,9 +38,21 @@ terraform/aws/
 │   │       ├── outputs.tf
 │   │       └── terraform.tfvars
 │   ├── staging/
-│   │   └── terraform.tfvars
+│   │   └── ses-email/          # Same structure as dev
+│   │       ├── terraform.tf
+│   │       ├── providers.tf
+│   │       ├── main.tf
+│   │       ├── variables.tf
+│   │       ├── outputs.tf
+│   │       └── terraform.tfvars
 │   ├── prod/
-│   │   └── terraform.tfvars
+│   │   └── ses-email/          # Same structure as dev
+│   │       ├── terraform.tf
+│   │       ├── providers.tf
+│   │       ├── main.tf
+│   │       ├── variables.tf
+│   │       ├── outputs.tf
+│   │       └── terraform.tfvars
 │   └── global/                 # Reserved for ACM, Route53
 ├── modules/                    # Reusable local modules
 │   ├── backend/                # S3 + DynamoDB for state
@@ -93,7 +105,7 @@ terraform/aws/
 
 ## Versions & Provider Pins
 
-Every root module must have a `versions.tf`:
+Every root module must define its `terraform` block in `terraform.tf`:
 
 ```hcl
 terraform {
@@ -743,7 +755,7 @@ resource "aws_cloudwatch_log_group" "this" {
 ## Azure Provider & State
 
 ```hcl
-# providers.tf
+# terraform.tf — versions, backend, and provider version constraints in one block
 terraform {
   required_providers {
     azurerm = {
@@ -751,21 +763,19 @@ terraform {
       version = "~> 3.0"
     }
   }
-}
 
-provider "azurerm" {
-  features {}
-  subscription_id = var.subscription_id
-}
-
-# backend.tf
-terraform {
   backend "azurerm" {
     resource_group_name  = "polaris-tfstate-rg"
     storage_account_name = "polaristfstate"
     container_name       = "tfstate"
     key                  = "dev/terraform.tfstate"
   }
+}
+
+# providers.tf
+provider "azurerm" {
+  features {}
+  subscription_id = var.subscription_id
 }
 ```
 
@@ -809,7 +819,7 @@ Before every `terraform apply` or PR merge, verify:
 ## Reference Implementations
 
 **polaris-email-integration** — Single-service Terraform project with S3 + DynamoDB state:
-- Per-environment directories: `environments/dev/ses-email/`, `environments/staging/`, `environments/prod/`
+- Per-environment directories: `environments/dev/ses-email/`, `environments/staging/ses-email/`, `environments/prod/ses-email/`
 - Reusable `modules/backend/`, `modules/kms/`, `modules/s3/`, etc.
 - Bootstrap pattern for creating state backend
 - Reference: `polaris-email-integration`
