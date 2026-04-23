@@ -41,6 +41,7 @@ $ARGUMENTS
 | Skill | Description |
 |-------|-------------|
 | `docker-patterns` | Docker/Docker Compose patterns for local development, security, networking, and multi-service orchestration |
+| `terraform` | Terraform infrastructure patterns for Polaris services on AWS and Azure. **All projects (service or shared infra) must use S3+DynamoDB remote state.** Covers module structure, remote state backends, IAM role assumption, environment separation (dev/staging/prod), KMS encryption, security best practices, HIPAA compliance, naming conventions, and multi-cloud (EKS, RDS, VPC, SES, Lambda, AKS, APIM) |
 
 ### Domain
 | Skill | Description |
@@ -257,7 +258,7 @@ The `--delete` flag in rsync ensures that skills removed from this repo are also
 ```
 polaris-ai-utility/
 ├── .claude/
-│   └── skills/                       # 13 Claude Code skill definitions
+│   └── skills/                       # 14 Claude Code skill definitions
 │       ├── api-design/
 │       ├── docker-patterns/
 │       ├── graphify/
@@ -272,13 +273,14 @@ polaris-ai-utility/
 │       ├── temporal-developer/
 │       │   ├── SKILL.md
 │       │   └── references/           # 14 reference docs for Temporal
+│       ├── terraform/                # AWS + Azure infrastructure patterns
 │       └── testing/                  # Combined: BDD Cucumber + component tests
 ├── .github/
-│   ├── prompts/                      # 13 GitHub Copilot prompt files
+│   ├── prompts/                      # 14 GitHub Copilot prompt files
 │   └── workflows/
 │       └── sync-ai-config.yml        # Auto-sync to downstream repos
 ├── .opencode/
-│   ├── commands/                     # 13 OpenCode command wrappers
+│   ├── commands/                     # 14 OpenCode command wrappers
 │   └── package.json                  # @opencode-ai/plugin dependency
 ├── .gitignore
 ├── CODEOWNERS
