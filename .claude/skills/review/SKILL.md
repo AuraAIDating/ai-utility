@@ -206,6 +206,32 @@ Only launch agents relevant to the files changed. Skip agents whose domain has n
 
 ---
 
+#### Agent 11: Terraform Infrastructure Review (Conditional)
+
+**Skill reference:** `.claude/skills/terraform/SKILL.md`
+
+**Applies when:** Terraform files (`.tf`), `terraform/` directories, or backend state configs are changed. **Skip entirely if no Terraform files are in the diff.**
+
+**Checks:**
+- Project structure: per-environment directories (dev, staging, prod) with separated Terraform state; single-service repos have one state per environment; multi-component repos have per-component states
+- Backend configuration: S3 bucket as remote backend with DynamoDB locking table, KMS CMK encryption with rotation enabled, unique state keys per environment
+- State file naming: `terraform/aws/environments/{env}/{service-name}/terraform.tfstate` for single-service or `terraform/aws/environments/{env}/{component}/terraform.tfstate` for multi-component
+- Terraform block: version constraint `>= 1.0`, backend with S3 bucket/key/region/dynamodb_table/encrypt/kms_key_id all present
+- Provider blocks: AWS `~> 5.0` (or Azure `~> 3.0`), region/subscription/tenant variables externalized
+- Variables and outputs: all have descriptions, validation rules for constraints, sensitive flags for secrets, defaults documented
+- Tagging strategy: standard tags structure with Environment, Service, CostCenter, Owner, ManagedBy applied to all resources
+- IAM patterns: assume_role with correct waveum-polaris-{service}-terraform-deploy-role, least privilege, no hardcoded credentials
+- KMS encryption: CMK mandatory for state files (S3 + DynamoDB) and production sensitive resources; case-by-case for other S3 buckets (dev/staging non-sensitive may use AES256); `enable_key_rotation = true` mandatory for all CMKs; Secrets Manager uses AWS-managed key only (not CMK)
+- S3 encryption: Terraform state must use CMK; production data must use CMK; dev/staging non-sensitive buckets may use AES256
+- Bootstrap process: self-contained backend module creates S3 bucket + DynamoDB table automatically with CMK; 3-step initialization documented
+- S3 security: all four block public access settings enabled, versioning enabled, encryption type appropriate for data sensitivity
+- Secrets management: AWS Secrets Manager with AWS-managed key (never kms_key_id parameter)
+- Module design: single responsibility, no provider blocks in modules, variables/outputs exposed, tags passed through
+- Environment separation: no shared state files, no cross-environment hardcoded values
+- Documentation: README documents bootstrap steps, environment setup, how to run terraform per environment
+
+---
+
 #### Agent 13: Technical Design & NFR Alignment
 
 **Applies when:** Always.

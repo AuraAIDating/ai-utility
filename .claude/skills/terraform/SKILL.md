@@ -474,7 +474,7 @@ notification_sender_domain = "polaris.waveum.io"
 
 ## KMS Encryption
 
-Every Polaris environment uses a Customer-Managed Key (CMK).
+Every Polaris environment uses a Customer-Managed Key (CMK) for sensitive data. Create one CMK per environment:
 
 ```hcl
 # modules/kms/main.tf
@@ -500,14 +500,57 @@ resource "aws_kms_alias" "this" {
 - Lambda — via the Lambda execution role
 
 **Rules:**
-- `enable_key_rotation = true` is **non-negotiable** for all environments.
-- Use the KMS key ARN for encryption-capable resources: S3 (SSE-KMS), CloudWatch Logs, Lambda env vars, DynamoDB, RDS.
-- **Secrets Manager uses the AWS-managed key** (`aws/secretsmanager`) — do not specify `kms_key_id` on secrets.
-- Never use the default AWS-managed key for S3, CloudWatch, Lambda, or RDS — those must use the project CMK.
+- `enable_key_rotation = true` is **non-negotiable** for all CMKs.
+- **CMK required for:** Terraform state files (S3 + DynamoDB), CloudWatch Logs (prod), Lambda env vars (prod), RDS (prod), DynamoDB (prod)
+- **AWS-managed key acceptable for:** Non-sensitive S3 buckets (temporary artifacts, build outputs, non-PII logs), dev/staging resources, transient data with short lifespans
+- **Secrets Manager always uses AWS-managed key** (`aws/secretsmanager`) — never specify `kms_key_id`
 
 ---
 
 ## S3 Security
+
+**Encryption Strategy: Case-by-Case**
+
+Choose encryption based on bucket sensitivity:
+
+| Bucket Type | CMK Required? | Use Case | Notes |
+|---|---|---|---|
+| Terraform state | ✅ **Yes** | Remote state files | Contains secrets, credentials, resources |
+| Production data | ✅ **Yes** | Email, patient records, PII | HIPAA, audit compliance |
+| CloudWatch Logs (prod) | ✅ **Yes** | Structured logs with tracing | May contain audit trails |
+| Build artifacts (dev/staging) | ❌ No | CI/CD outputs, transient builds | Non-sensitive, short-lived |
+| Lambda layer cache (dev) | ❌ No | Layer ZIP files, dev only | Easy to recreate, non-critical |
+| SES bounce notifications | ✅ **Yes** | Email metadata, compliance logs | Required for SES integration audit trail |
+
+**CMK Encryption (sensitive data):**
+
+```hcl
+resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
+  bucket = aws_s3_bucket.this.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = var.kms_key_arn
+    }
+    bucket_key_enabled = true
+  }
+}
+```
+
+**AWS-Managed Key (non-sensitive data):**
+
+```hcl
+resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
+  bucket = aws_s3_bucket.this.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+```
+
+**All buckets require:**
 
 ```hcl
 resource "aws_s3_bucket" "this" {
@@ -518,16 +561,6 @@ resource "aws_s3_bucket" "this" {
 resource "aws_s3_bucket_versioning" "this" {
   bucket = aws_s3_bucket.this.id
   versioning_configuration { status = "Enabled" }
-}
-
-resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
-  bucket = aws_s3_bucket.this.id
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm     = "aws:kms"
-      kms_master_key_id = var.kms_key_arn
-    }
-  }
 }
 
 resource "aws_s3_bucket_public_access_block" "this" {
@@ -546,8 +579,8 @@ resource "aws_s3_bucket_ownership_controls" "this" {
 
 **Rules:**
 - All four public access block settings must be `true` — no exceptions.
-- Versioning enabled on all buckets storing business data or email.
-- SSE-KMS with the project CMK — never `AES256` alone.
+- Versioning enabled on all buckets.
+- Choose encryption type (CMK or AES256) based on sensitivity (see table above).
 - Random suffix on bucket name to ensure global uniqueness.
 
 ---
