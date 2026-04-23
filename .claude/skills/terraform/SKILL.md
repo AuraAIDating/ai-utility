@@ -303,13 +303,13 @@ module "backend" {
 cd terraform/aws/environments/dev/ses-email
 
 # Step 1: Initialize without backend (uses local state)
-terraform init -migrate-state
+terraform init
 
 # Step 2: Apply to create S3 bucket + DynamoDB table
 terraform apply
 
 # Step 3: Re-initialize with remote backend (migrates state to S3)
-terraform init
+terraform init -migrate-state
 
 # Verify state is now remote
 terraform state list
