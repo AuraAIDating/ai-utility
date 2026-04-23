@@ -83,10 +83,6 @@ terraform/aws/
     └── ...
 ```
 
-
-│       └── ...
-```
-
 **Rules:**
 - Environment directories are **consumers** of modules — they contain only `module` blocks, data sources, and a backend config.
 - Never put resource blocks directly into environment directories; always encapsulate in a module.
@@ -164,7 +160,6 @@ terraform plan
 terraform apply
 
 # Staging
-cd terraform/aws/environments/staging
 cd terraform/aws/environments/staging/ses-email  # If following same structure
 terraform init
 terraform plan
@@ -700,7 +695,7 @@ module "vpc" {
   database_subnets = ["10.48.13.0/24", "10.48.14.0/24"]
 
   enable_nat_gateway   = true
-  single_nat_gateway   = true    # Cost optimisation for non-prod; use one_nat_gateway_per_az = true for prod
+  single_nat_gateway   = true    # Cost optimization for non-prod; use one_nat_gateway_per_az = true for prod
 
   enable_dns_hostnames = true
   enable_dns_support   = true
@@ -817,12 +812,12 @@ Before every `terraform apply` or PR merge, verify:
 - Per-environment directories: `environments/dev/ses-email/`, `environments/staging/`, `environments/prod/`
 - Reusable `modules/backend/`, `modules/kms/`, `modules/s3/`, etc.
 - Bootstrap pattern for creating state backend
-- Reference: `C:\Users\Dom\projects\orange\polaris\polaris-email-integration`
+- Reference: `polaris-email-integration`
 
 **polaris-infra** — Multi-component shared infrastructure:
 - Per-component directories: `environments/dev/infra/`, `environments/dev/eks/`, `environments/dev/db/`, etc.
 - Each component has independent state file
-- Reference: `C:\Users\Dom\projects\orange\polaris\polaris-infra`
+- Reference: `polaris-infra`
 
 Both projects demonstrate the **same core pattern**: remote S3 + DynamoDB state with KMS encryption.
 
