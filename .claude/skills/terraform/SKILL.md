@@ -125,7 +125,7 @@ terraform {
 ```
 
 **Rules:**
-- Use `~> X.Y` (pessimistic constraint operator) for provider versions — allows patch updates, blocks major bumps.
+- Use `~> X.Y` (pessimistic constraint operator) for provider versions — allows patch and minor updates, blocks major version bumps.
 - Lock exact versions in `.terraform.lock.hcl` and commit it.
 - Minimum Terraform version: `>= 1.0`. Prefer `>= 1.5.7` for EKS modules (required for `check` blocks).
 

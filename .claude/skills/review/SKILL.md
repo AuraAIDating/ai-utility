@@ -216,10 +216,10 @@ Only launch agents relevant to the files changed. Skip agents whose domain has n
 - Project structure: per-environment directories (dev, staging, prod) with separated Terraform state; single-service repos have one state per environment; multi-component repos have per-component states
 - Backend configuration: S3 bucket as remote backend with DynamoDB locking table, KMS CMK encryption with rotation enabled, unique state keys per environment
 - State file naming: `terraform/aws/environments/{env}/{service-name}/terraform.tfstate` for single-service or `terraform/aws/environments/{env}/{component}/terraform.tfstate` for multi-component
-- Terraform block: version constraint `>= 1.0`, backend with S3 bucket/key/region/dynamodb_table/encrypt/kms_key_id all present
+- Terraform block: version constraint `>= 1.0`, backend with S3 bucket/key/region/dynamodb_table/encrypt all present; profile optional when using AWS profiles
 - Provider blocks: AWS `~> 5.0` (or Azure `~> 3.0`), region/subscription/tenant variables externalized
 - Variables and outputs: all have descriptions, validation rules for constraints, sensitive flags for secrets, defaults documented
-- Tagging strategy: standard tags structure with Environment, Service, CostCenter, Owner, ManagedBy applied to all resources
+- Tagging strategy: standard tags (Project, Environment, ManagedBy, Owner) applied to all resources via locals block
 - IAM patterns: assume_role with correct waveum-polaris-{service}-terraform-deploy-role, least privilege, no hardcoded credentials
 - KMS encryption: CMK mandatory for state files (S3 + DynamoDB) and production sensitive resources; case-by-case for other S3 buckets (dev/staging non-sensitive may use AES256); `enable_key_rotation = true` mandatory for all CMKs; Secrets Manager uses AWS-managed key only (not CMK)
 - S3 encryption: Terraform state must use CMK; production data must use CMK; dev/staging non-sensitive buckets may use AES256
