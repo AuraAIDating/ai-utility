@@ -98,9 +98,26 @@ jobs:
           delete-branch: true
           labels: automation, ai-config
 
-      - name: Enable auto-merge
+      - name: Wait for checks and merge
         if: steps.create-pr.outputs.pull-request-number != ''
-        run: gh pr merge --auto --squash "${{ steps.create-pr.outputs.pull-request-number }}" --repo "${{ matrix.target.repo }}"
+        run: |
+          PR_NUM="${{ steps.create-pr.outputs.pull-request-number }}"
+          REPO="${{ matrix.target.repo }}"
+          echo "Waiting for checks on PR #$PR_NUM in $REPO..."
+          for i in $(seq 1 20); do
+            CONCLUSIONS=$(gh pr view "$PR_NUM" --repo "$REPO" --json statusCheckRollup --jq '[.statusCheckRollup[] | select(.conclusion != null) | .conclusion]')
+            PENDING=$(gh pr view "$PR_NUM" --repo "$REPO" --json statusCheckRollup --jq '[.statusCheckRollup[] | select(.conclusion == null)] | length')
+            ALL_SUCCESS=$(echo "$CONCLUSIONS" | jq 'length > 0 and all(. == "SUCCESS")')
+            echo "Attempt $i: pending=$PENDING all_success=$ALL_SUCCESS"
+            if [ "$PENDING" = "0" ] && [ "$ALL_SUCCESS" = "true" ]; then
+              echo "All checks passed — merging as bot (bypass reviews)..."
+              gh pr merge "$PR_NUM" --repo "$REPO" --squash
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "::error::Timed out waiting for checks after 10 minutes"
+          exit 1
         env:
           GH_HOST: waveum.ghe.com
           GH_TOKEN: ${{ steps.bot-token.outputs.token }}
