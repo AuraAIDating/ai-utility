@@ -508,4 +508,3 @@ Point the app at WireMock via environment variables:
 8. **Awaitility for async** — poll the public API; never `Thread.sleep`
 9. **Containers start once** — `static {}` block; never restart per scenario
 10. **Declarative Gherkin** — domain language, not HTTP verbs
-
