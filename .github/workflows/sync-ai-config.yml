@@ -39,6 +39,7 @@ jobs:
         with:
           app_id: ${{ secrets.AI_BOT_ID }}
           private_key: ${{ secrets.AI_BOT_PRIVATE_KEY }}
+          github_api_url: ${{ github.api_url }}
 
       - name: Checkout source (this repo)
         uses: actions/checkout@v4
