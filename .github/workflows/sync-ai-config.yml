@@ -49,6 +49,7 @@ jobs:
         with:
           app-id: ${{ secrets.AI_BOT_APP_ID }}
           private-key: ${{ secrets.AI_BOT_PRIVATE_KEY }}
+          owner: waveum
 
       - name: Checkout source (this repo)
         uses: actions/checkout@v4
