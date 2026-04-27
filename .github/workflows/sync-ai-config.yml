@@ -24,12 +24,12 @@ jobs:
         # ──────────────────────────────────────────────────────────────────
         target:
           - { repo: "waveum/polaris-order-connector" }
-#          - { repo: "waveum/polaris-order-workflow-agent" }
-#          - { repo: "waveum/polaris-notification-service" }
-#          - { repo: "waveum/polaris-psr-document-scanner" }
-#          - { repo: "waveum/polaris-infra" }
-#          - { repo: "waveum/polaris-email-integration" }
-#          - { repo: "waveum/polaris-training-modeling" }
+          - { repo: "waveum/polaris-order-workflow-agent" }
+          - { repo: "waveum/polaris-notification-service" }
+          - { repo: "waveum/polaris-psr-document-scanner" }
+          - { repo: "waveum/polaris-infra" }
+          - { repo: "waveum/polaris-email-integration" }
+          - { repo: "waveum/polaris-training-modeling" }
           # - { repo: "waveum/polaris-<new-service>" }
 
     steps:
