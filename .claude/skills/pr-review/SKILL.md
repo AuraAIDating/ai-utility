@@ -34,23 +34,73 @@ Based on user input, determine which type of review to perform:
    - Run: `gh pr view <input>` to get PR context
    - Run: `gh pr diff <input>` to get the diff
 
-### Step 2: Gather Full Context
+### Step 2: Prepare Git Worktrees for Parallel Agent Access
+
+Multiple review agents running in parallel must never share a working directory — concurrent reads are fine, but any agent that runs tools (`./gradlew`, `grep`, `find`) against the source tree can interfere with others if they share the same checkout.
+
+**Create one worktree per branch/commit under review before launching agents.**
+
+```bash
+# Resolve the repo root
+REPO_ROOT=$(git rev-parse --show-toplevel)
+WORKTREE_BASE="$REPO_ROOT/../.pr-review-worktrees"
+mkdir -p "$WORKTREE_BASE"
+
+# --- For a PR / branch diff ---
+BRANCH=$(gh pr view <pr-number> --json headRefName -q .headRefName)
+BASE_BRANCH=$(gh pr view <pr-number> --json baseRefName -q .baseRefName)
+
+# Worktree for the PR head (agents read the new code here)
+git worktree add "$WORKTREE_BASE/pr-head" "$BRANCH"
+
+# Worktree for the base branch (agents compare against this)
+git worktree add "$WORKTREE_BASE/pr-base" "$BASE_BRANCH"
+
+# --- For a commit hash ---
+git worktree add "$WORKTREE_BASE/commit-<hash>" <hash>
+
+# --- For uncommitted changes (default) ---
+# No worktree needed — agents read the current working tree read-only
+```
+
+**Worktree hygiene — always clean up after the review:**
+
+```bash
+git worktree remove --force "$WORKTREE_BASE/pr-head"
+git worktree remove --force "$WORKTREE_BASE/pr-base"
+git worktree prune
+```
+
+> **Tip:** If the worktree directory already exists (e.g., a previous review was interrupted), run `git worktree remove --force <path>` before re-adding.
+
+Each agent receives its own `WORKTREE_PATH` so it operates on an isolated checkout:
+
+| Agent group | Worktree |
+|---|---|
+| Agents reviewing new code (most agents) | `$WORKTREE_BASE/pr-head` |
+| Agents doing base-vs-head comparison | both paths |
+| Agents running static analysis / grep | `$WORKTREE_BASE/pr-head` (never the live working tree) |
+
+---
+
+### Step 3: Gather Full Context
 
 **Diffs alone are not enough.** After getting the diff, read the entire file(s) being modified.
 
 - Use the diff to identify which files changed and categorize them (Java source, test, config, Docker, SQL, feature files, etc.)
 - Use `git status --short` to identify untracked files, then read their full contents
-- Read full files to understand existing patterns, control flow, and error handling
+- Read full files (from the worktree path) to understand existing patterns, control flow, and error handling
 - Identify which review agents are relevant based on the files changed
 
-### Step 3: Launch Parallel Review Agents
+### Step 4: Launch Parallel Review Agents
 
 The orchestrator agent MUST launch sub-agents in parallel using the Agent tool. Each sub-agent receives:
 - The diff content for relevant files
 - The list of changed file paths
-- Instructions to read full file contents and the referenced skill before reviewing
+- The **absolute path to their assigned worktree** (`WORKTREE_PATH=$WORKTREE_BASE/pr-head`) so all file reads and tool invocations use the isolated checkout
+- Instructions to read full file contents (from `WORKTREE_PATH`) and the referenced skill before reviewing
 
-**Launch ALL applicable agents in a single message with multiple Agent tool calls.**
+**Launch ALL applicable agents in a single message with multiple Agent tool calls.** Every agent MUST use its assigned `WORKTREE_PATH` — never the live working tree — so parallel tool invocations are fully isolated.
 
 Only launch agents that are relevant to the files changed. For example, skip the Kafka agent if no Kafka-related files are in the diff.
 
@@ -256,7 +306,7 @@ For each NFR violation found, cite the specific NFR from the Technical Design an
 
 ---
 
-### Step 4: Collect and Deduplicate Results
+### Step 5: Collect and Deduplicate Results
 
 As sub-agents complete, the orchestrator:
 
@@ -265,7 +315,7 @@ As sub-agents complete, the orchestrator:
 3. Assigns final severity: **Critical**, **Medium**, **Low**
 4. Groups findings by file for coherent inline comments
 
-### Step 5: Present Consolidated Findings
+### Step 6: Present Consolidated Findings
 
 Present a summary table to the user:
 
@@ -284,7 +334,7 @@ Include:
 - Which agents found issues vs. gave a clean pass
 - Any agents that were skipped (and why)
 
-### Step 6: Ask Permission Before Posting
+### Step 7: Ask Permission Before Posting
 
 **CRITICAL: Never post review comments without explicit user permission.**
 
@@ -295,7 +345,7 @@ After presenting findings, ask the user:
 
 Only proceed to post after receiving explicit confirmation.
 
-### Step 7: Post Inline Comments at Specific Lines
+### Step 8: Post Inline Comments at Specific Lines
 
 When posting comments on a PR, **always use inline comments at the exact line numbers** — never post a single wall-of-text general comment.
 
@@ -333,6 +383,19 @@ The review JSON structure:
 Write the JSON to a temp file and use `--input` to avoid shell escaping issues.
 
 **Detecting GitHub Enterprise:** If the PR URL contains a hostname other than `github.com`, use `gh api --hostname <host>` and extract owner/repo from the URL. Run `gh auth status` if unsure which hosts are configured.
+
+### Step 9: Clean Up Worktrees
+
+After all comments are posted (or if the review is abandoned), always remove the worktrees:
+
+```bash
+git worktree remove --force "$WORKTREE_BASE/pr-head"
+git worktree remove --force "$WORKTREE_BASE/pr-base"   # if created
+git worktree prune
+rm -rf "$WORKTREE_BASE"
+```
+
+> **Never leave stale worktrees.** They hold references to the checked-out commits and prevent garbage collection. If the process is interrupted, the user can clean up manually with `git worktree list` and `git worktree remove --force <path>`.
 
 ## Comment Tone and Style
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Java SDK has **no sandbox**. Unlike the Python SDK (which uses a sandbox to block non-deterministic calls) or the TypeScript SDK (which uses V8 isolation to replace functions), the Java SDK relies on developer conventions to enforce determinism. The SDK provides `Workflow.*` APIs as safe replacements for common non-deterministic operations. A static analysis tool (`temporal-workflowcheck`, beta) can catch violations at build time — see `references/java/determinism-protection.md`.
+The Java SDK has **no sandbox** (only Python and TypeScript have sandboxing). The Java SDK relies on developer conventions to enforce determinism. The SDK provides `Workflow.*` APIs as safe replacements for common non-deterministic operations. A static analysis tool (`temporal-workflowcheck`, beta) can catch violations at build time — see `references/java/determinism-protection.md`.
 
 ## Why Determinism Matters: History Replay
 
@@ -12,7 +12,7 @@ Temporal provides durable execution through **History Replay**. When a Worker ne
 
 Java workflow code runs in a cooperative threading model where only one workflow thread executes at a time under a global lock. The SDK does not intercept or block non-deterministic calls at runtime. If you call a forbidden operation, it will silently succeed during the initial execution but cause a `NonDeterministicException` when the workflow is replayed.
 
-Use `temporal-workflowcheck` (static analysis, beta) to catch violations at build time, and `WorkflowReplayer` to verify replay compatibility in tests.
+`temporal-workflowcheck` (static analysis, beta) and `WorkflowReplayer` (replay testing) can help uncover some violations, but they are not exhaustive — careful code review and adherence to the rules below remain essential.
 
 ## Forbidden Operations
 

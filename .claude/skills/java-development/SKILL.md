@@ -1,6 +1,6 @@
 ---
 name: java-development
-description: "Complete Java/Spring Boot development skill: coding standards, naming, immutability, Spring Boot patterns (REST, services, JPA, caching, async), unit testing (JUnit 5, Mockito, AssertJ, MockMvc), TDD workflow, code formatting (Spotless), and verification loop (build, static analysis, coverage, security scans)."
+description: "Complete Java/Spring Boot development skill: coding standards, naming, immutability, sealed classes, Spring Boot patterns (REST, services, JPA, virtual threads, structured concurrency, weakest-link awareness), unit testing (JUnit 5, Mockito, AssertJ, MockMvc), TDD workflow, code formatting (Spotless), and verification loop (build, static analysis, coverage, security scans)."
 ---
 
 # Java & Spring Boot Development
@@ -11,7 +11,9 @@ Complete development guide for Java 21+ / Spring Boot services in Polaris.
 
 - Writing, reviewing, or refactoring Java code in Spring Boot projects
 - Creating REST APIs, services, repositories, or entities
+- Modelling domain hierarchies with sealed classes and pattern matching
 - Writing unit tests, web layer tests, or integration tests
+- Designing concurrent workloads with virtual threads and structured concurrency
 - Running build/test/verification pipelines
 - Formatting Java source code
 
@@ -55,6 +57,43 @@ public class Market {
   // getters only, no setters
 }
 ```
+
+## Sealed Classes
+
+Use sealed classes to model closed domain hierarchies — replacing `enum` when variants carry different data, and making exhaustive `switch` expressions compiler-enforced.
+
+```java
+// Sealed interface for a domain result hierarchy
+public sealed interface MarketResult
+    permits MarketResult.Success, MarketResult.NotFound, MarketResult.ValidationFailed {
+
+  record Success(Market market) implements MarketResult {}
+  record NotFound(String slug) implements MarketResult {}
+  record ValidationFailed(List<String> errors) implements MarketResult {}
+}
+
+// Exhaustive switch — compiler enforces all cases
+MarketResponse response = switch (result) {
+    case MarketResult.Success(var market)           -> MarketResponse.from(market);
+    case MarketResult.NotFound(var slug)            -> throw new EntityNotFoundException(slug);
+    case MarketResult.ValidationFailed(var errors)  -> throw new ValidationException(errors);
+};
+```
+
+### When to use sealed classes
+
+| Use sealed | Don't bother |
+|---|---|
+| Closed set of domain states (e.g. `OrderStatus` variants with payloads) | Simple flag/status with no payload → use `enum` |
+| API response discriminated unions | Open extension points / plugin architectures |
+| Error / result types carrying context | Pure data objects → use `record` |
+
+### Rules
+
+- Always `sealed` + `permits` — never leave the hierarchy open by accident
+- Prefer `record` permits for immutable variants; use `final class` only when mutable state is truly needed
+- Pair with pattern-matching `switch` — never `instanceof` chains
+- Do **not** use `sealed` for Spring-managed beans (controllers, services, repositories) — Spring proxies require open classes
 
 ## Optional Usage
 
@@ -124,11 +163,20 @@ src/test/java/... (mirrors main)
 
 ## Code Smells to Avoid
 
-- Long parameter lists -> use DTO/builders
-- Deep nesting -> early returns
-- Magic numbers -> named constants
-- Static mutable state -> prefer dependency injection
-- Silent catch blocks -> log and act or rethrow
+- Long parameter lists → use DTO/builders
+- Deep nesting → early returns
+- Magic numbers → named constants
+- Static mutable state → prefer dependency injection
+- Silent catch blocks → log and act or rethrow
+- `synchronized` blocks → use `java.util.concurrent` primitives (`ReentrantLock`, `ConcurrentHashMap`, `AtomicReference`) or redesign to eliminate shared mutable state
+- `static { }` initializer blocks → move initialization to constructors, `@PostConstruct`, or Spring `@Bean` factory methods; they hide failures and complicate testing
+- Reactive types (`Mono`, `Flux`) → use virtual threads (see Part 2 — Async & Concurrency)
+- Unclosed resources → always use `try-with-resources` for any `Closeable`
+- `ThreadLocal` without `remove()` → leaks per-request data; use `ScopedValue` (Java 21+) where possible
+- `static` collections / caches without eviction → use `Caffeine` with `maximumSize` + TTL
+- `HttpClient` / `RestClient` created inside methods → declare as singleton `@Bean`
+- Event listeners registered but never deregistered → call deregister in `@PreDestroy`
+- `EAGER` fetch on large `@OneToMany` associations → default to `LAZY`
 
 ---
 
@@ -234,19 +282,108 @@ class GlobalExceptionHandler {
 }
 ```
 
-## Async Processing
+## Async & Concurrency — Virtual Threads
 
-Requires `@EnableAsync` on a configuration class.
+Spring Boot 3.2+ runs on virtual threads out of the box when configured. **Do not use `Mono`/`Flux` (Project Reactor) or `synchronized` blocks.** Write plain blocking code; the JVM schedules it on virtual threads efficiently.
+
+### Enable virtual threads (Spring Boot 3.2+)
+
+```yaml
+# application.yaml
+spring:
+  threads:
+    virtual:
+      enabled: true
+```
+
+This single flag makes Tomcat, `@Async`, and `TaskExecutor` all use virtual threads — no code changes required for standard request handling.
+
+### `@Async` with virtual threads
 
 ```java
+// config/AsyncConfig.java
+@Configuration
+@EnableAsync
+public class AsyncConfig {
+  @Bean
+  TaskExecutor taskExecutor() {
+    // Virtual-thread-per-task executor — Spring Boot auto-configures this
+    // when spring.threads.virtual.enabled=true; define explicitly only when
+    // you need a named bean.
+    return new TaskExecutorAdapter(Executors.newVirtualThreadPerTaskExecutor());
+  }
+}
+
+// service/NotificationService.java
 @Service
 public class NotificationService {
   @Async
   public CompletableFuture<Void> sendAsync(Notification notification) {
-    // send email/SMS
+    // plain blocking call — runs on a virtual thread
+    emailClient.send(notification);
     return CompletableFuture.completedFuture(null);
   }
 }
+```
+
+### Structured concurrency (Java 21+)
+
+Use `StructuredTaskScope` when you need fan-out + join semantics:
+
+```java
+try (var scope = new StructuredTaskScope.ShutdownOnFailure()) {
+  var priceTask  = scope.fork(() -> priceService.fetch(marketId));
+  var volumeTask = scope.fork(() -> volumeService.fetch(marketId));
+
+  scope.join().throwIfFailed();
+
+  return new MarketSummary(priceTask.get(), volumeTask.get());
+}
+```
+
+### ⚠️ The "Weakest Link" problem with blocking I/O
+
+Virtual threads are cheap but **they still block their carrier thread when a virtual thread performs non-cooperative blocking** (e.g. holding a `ReentrantLock` while waiting on I/O, or calling a driver that uses `synchronized` internally).
+
+Rules to avoid the weakest-link problem:
+
+| Rule | Why |
+|---|---|
+| Use JDBC drivers that support virtual-thread-friendly locking (e.g. PgJDBC ≥ 42.7 with `preferQueryMode=simple` or Loom-aware builds) | Old JDBC drivers use `synchronized` inside, pinning the carrier thread |
+| Do **not** hold `ReentrantLock` / any lock across I/O calls | Pinned virtual threads stall the carrier, defeating concurrency |
+| Size HikariCP pool to match **actual DB concurrency** (not virtual thread count) | HikariCP itself is virtual-thread-safe, but the DB has limited connections |
+| Prefer `java.util.concurrent` (`Semaphore`, `CountDownLatch`) over `synchronized` | These cooperate with virtual thread scheduler |
+| Set `spring.datasource.hikari.maximum-pool-size` conservatively | Virtual threads make it easy to flood the DB; the connection pool is the real throttle |
+| Keep `@Transactional` boundaries short | Long-held DB connections under virtual threads still exhaust the pool |
+
+```yaml
+# application.yaml — safe defaults for virtual-thread + HikariCP
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: 20          # tune to DB capacity, not thread count
+      connection-timeout: 3000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+```
+
+### What NOT to do
+
+```java
+// ❌ Reactive — don't use; virtual threads replace this need
+Mono<Market> market = marketRepository.findBySlug(slug);
+
+// ❌ synchronized — pins carrier thread under virtual threads
+synchronized (this) { ... }
+
+// ❌ static { } initializer — hides startup failures, hard to test
+static {
+  config = loadConfig();
+}
+
+// ✅ Plain blocking — reads clearly, runs efficiently on virtual threads
+Market market = marketRepository.findBySlug(slug)
+    .orElseThrow(() -> new MarketNotFoundException(slug));
 ```
 
 ## Logging (SLF4J)
@@ -290,9 +427,11 @@ Page<Market> results = marketService.list(page);
 
 - Prefer constructor injection, avoid field injection
 - Enable `spring.mvc.problemdetails.enabled=true` for RFC 7807 errors (Spring Boot 3+)
-- Configure HikariCP pool sizes for workload, set timeouts
-- Use `@Transactional(readOnly = true)` for queries
+- Enable `spring.threads.virtual.enabled=true` — virtual threads for all request handling and `@Async`
+- Configure HikariCP conservatively (`maximum-pool-size` ≤ DB connection limit); virtual threads do **not** reduce DB concurrency needs
+- Use `@Transactional(readOnly = true)` for queries; keep transaction boundaries short
 - Enforce null-safety via `@NonNull` and `Optional` where appropriate
+- Never use `synchronized`, `static { }` blocks, or reactive types (`Mono`/`Flux`) — see Async & Concurrency section
 
 ---
 
@@ -572,6 +711,80 @@ grep -rn "System\.out\.print" src/main/ --include="*.java"
 grep -rn "e\.getMessage()" src/main/ --include="*.java"
 ```
 
+## Phase 4b: Memory Leak Checks
+
+### Static grep checks (run locally, no extra tooling)
+
+```bash
+# Streams / Readers / Writers opened without try-with-resources
+grep -rn "new FileInputStream\|new FileOutputStream\|new BufferedReader\|new InputStreamReader" \
+     src/main/ --include="*.java"
+
+# HttpClient / RestClient / WebClient instances created inside methods (should be beans)
+grep -rn "HttpClient\.newHttpClient\|RestClient\.create\|WebClient\.create" \
+     src/main/ --include="*.java"
+
+# ThreadLocal without remove() — leaks under virtual-thread or thread-pool reuse
+grep -rn "ThreadLocal" src/main/ --include="*.java"
+
+# Static collections that grow unboundedly
+grep -rn "private static final.*Map\|private static final.*List\|private static final.*Set" \
+     src/main/ --include="*.java"
+
+# Listeners / observers registered but never deregistered
+grep -rn "addEventListener\|addListener\|register.*Listener" src/main/ --include="*.java"
+
+# ScheduledExecutorService / Timer created but not shut down
+grep -rn "new ScheduledThreadPoolExecutor\|new Timer(" src/main/ --include="*.java"
+```
+
+### Runtime detection (CI / staging)
+
+Add the following JVM flags to your test task to enable JDK Flight Recorder leak profiling:
+
+```kotlin
+// build.gradle.kts
+tasks.test {
+    jvmArgs(
+        "-XX:+HeapDumpOnOutOfMemoryError",
+        "-XX:HeapDumpPath=build/reports/heap-dump.hprof",
+        "-Xlog:gc*:file=build/reports/gc.log:time,uptime:filecount=5,filesize=20m"
+    )
+}
+```
+
+Analyse heap dumps with:
+
+```bash
+# jmap heap histogram (JDK built-in)
+jmap -histo:live <pid> | head -40
+
+# Or open build/reports/heap-dump.hprof in IntelliJ / Eclipse MAT
+```
+
+### Common memory leak patterns and fixes
+
+| Pattern | Problem | Fix |
+|---|---|---|
+| `static` cache / map with no eviction | Grows unboundedly | Use `Caffeine` / `@Cacheable` with `maximumSize` + TTL |
+| `ThreadLocal` not removed after request | Leaked under virtual-thread recycling | Call `threadLocal.remove()` in `finally`, or use `ScopedValue` (Java 21+) |
+| Resource opened outside `try-with-resources` | Stream never closed on exception | Wrap every `Closeable` in `try (var x = ...)` |
+| Inner class holding outer class reference | GC cannot collect outer object | Use `static` nested classes or lambdas that don't capture `this` |
+| Event listeners never deregistered | Publisher holds strong ref to subscriber | Deregister in `@PreDestroy` / `DisposableBean.destroy()` |
+| `HttpClient` / `RestClient` created per-call | Connection pool recreated every request | Declare as `@Bean` (singleton) |
+| Hibernate `@OneToMany` with `EAGER` on large collections | Entire collection loaded into heap | Default to `LAZY`; load explicitly when needed |
+| `CompletableFuture` chains not completed or cancelled | Pending stages never GC'd | Always complete / cancel in `finally`; set timeouts |
+
+### SpotBugs memory rules (already in Phase 2)
+
+Ensure these SpotBugs bug categories are **not** suppressed in `spotbugs-exclude.xml`:
+
+```xml
+<!-- spotbugs-exclude.xml — do NOT exclude these -->
+<!-- DM_GC, IS2_INCONSISTENT_SYNC, OBL_UNSATISFIED_OBLIGATION,
+     ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD -->
+```
+
 ## Phase 5: Lint/Format
 
 ```bash
@@ -600,6 +813,7 @@ Build:     [PASS/FAIL]
 Static:    [PASS/FAIL] (spotbugs/pmd/checkstyle)
 Tests:     [PASS/FAIL] (X/Y passed, Z% coverage)
 Security:  [PASS/FAIL] (CVE findings: N)
+Memory:    [PASS/FAIL] (leaks: static caches, unclosed resources, ThreadLocal, listeners)
 Diff:      [X files changed]
 
 Overall:   [READY / NOT READY]

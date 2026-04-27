@@ -4,9 +4,52 @@
 
 # macOS
 .DS_Store
+**/.DS_Store
 
 # Editor backups
 *~
 *.swp
 *.swo
 
+# Build outputs
+build/
+out/
+*.class
+*.jar
+
+# Gradle
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+release.properties
+
+# Logs
+*.log
+logs/
+
+# Node (opencode tooling)
+.opencode/node_modules/
+.opencode/package-lock.json
+
+# Graphify cache / output
+graphify-out/
+
+# Secrets / local overrides
+*.env
+.env
+.env.*
+application-local.yaml
+application-local.yml
+
+# Claude local settings (personal tokens etc.)
+.claude/settings.local.json
+
+# Coverage reports
+**/jacoco/
+**/test-results/
