@@ -54,6 +54,7 @@ $ARGUMENTS
 |-------|-------------|
 | `review` | Local code review of uncommitted changes using parallel sub-agents. Checks Java/Python code, API design, tests, healthcare compliance, Kafka, Docker, JPA, Temporal, NFRs, PII/PHI exposure, and technical design alignment. After review, offers to create a PR with an auto-generated description |
 | `pr-review` | Same multi-agent review as `review` but for pull requests. Posts inline comments at specific line numbers on the PR after user approval |
+| `drift-management` | Detect drift between the current repo's code and its governing Technical Design docs and Decision Records. Auto-detects the repo from git context, scopes doc fetching to that service, and classifies findings as implementation drift, undocumented decisions, or stale documentation |
 | `review-ai-utility` | Self-review for this repo: validates skill/prompt/command sync, checks broken references, ensures consistency across all three AI tools |
 
 Both `review` and `pr-review` skills:
@@ -258,9 +259,10 @@ The `--delete` flag in rsync ensures that skills removed from this repo are also
 ```
 polaris-ai-utility/
 ├── .claude/
-│   └── skills/                       # 14 Claude Code skill definitions
+│   └── skills/                       # 15 Claude Code skill definitions
 │       ├── api-design/
 │       ├── docker-patterns/
+│       ├── drift-management/         # Drift detection: code vs Technical Design + Decision Records
 │       ├── graphify/
 │       ├── healthcare-domain/
 │       ├── java-development/         # Combined: coding standards + Spring Boot + testing + TDD + formatting + verification
@@ -276,11 +278,11 @@ polaris-ai-utility/
 │       ├── terraform/                # AWS + Azure infrastructure patterns
 │       └── testing/                  # Combined: BDD Cucumber + component tests
 ├── .github/
-│   ├── prompts/                      # 14 GitHub Copilot prompt files
+│   ├── prompts/                      # 15 GitHub Copilot prompt files
 │   └── workflows/
 │       └── sync-ai-config.yml        # Auto-sync to downstream repos
 ├── .opencode/
-│   ├── commands/                     # 14 OpenCode command wrappers
+│   ├── commands/                     # 15 OpenCode command wrappers
 │   └── package.json                  # @opencode-ai/plugin dependency
 ├── .gitignore
 ├── CODEOWNERS
