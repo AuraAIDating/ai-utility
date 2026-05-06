@@ -1,4 +1,4 @@
----
+﻿---
 name: review
 description: "Local code review of uncommitted changes using parallel sub-agents. Checks API design, backend patterns, tests, healthcare compliance, Kafka, Docker, JPA, Spring Boot, Temporal, and coding standards. After review, offers to create a PR with a generated description."
 ---
@@ -125,22 +125,6 @@ Only launch agents relevant to the files changed. Skip agents whose domain has n
 
 ---
 
-#### Agent 5: Healthcare Domain Review
-
-**Skill reference:** `.claude/skills/healthcare-domain/SKILL.md`
-
-**Applies when:** Files related to healthcare data, PHI, NPI, ICD-10, HCPCS, Medicaid, EDI, or compliance.
-
-**Checks:**
-- HIPAA PHI safeguards
-- NPI validation (Luhn)
-- PECOS status verification
-- ICD-10/HCPCS code validation
-- Medicaid/Title XIX requirements
-- X12 EDI structure validation
-- No PHI in logs or error messages
-
----
 
 #### Agent 7: Kafka Patterns Review
 
@@ -220,7 +204,7 @@ Only launch agents relevant to the files changed. Skip agents whose domain has n
 - Provider blocks: AWS `~> 5.0` (or Azure `~> 3.0`), region/subscription/tenant variables externalized
 - Variables and outputs: all have descriptions, validation rules for constraints, sensitive flags for secrets, defaults documented
 - Tagging strategy: standard tags (Project, Environment, ManagedBy, Owner) applied to all resources via locals block
-- IAM patterns: assume_role with correct waveum-polaris-{service}-terraform-deploy-role, least privilege, no hardcoded credentials
+- IAM patterns: assume_role with correct your-org-{service}-terraform-deploy-role, least privilege, no hardcoded credentials
 - KMS encryption: CMK mandatory for state files (S3 + DynamoDB) and production sensitive resources; case-by-case for other S3 buckets (dev/staging non-sensitive may use AES256); `enable_key_rotation = true` mandatory for all CMKs; Secrets Manager uses AWS-managed key only (not CMK)
 - S3 encryption: Terraform state must use CMK; production data must use CMK; dev/staging non-sensitive buckets may use AES256
 - Bootstrap process: self-contained backend module creates S3 bucket + DynamoDB table automatically with CMK; 3-step initialization documented
@@ -239,8 +223,8 @@ Only launch agents relevant to the files changed. Skip agents whose domain has n
 **Checks:**
 
 **Technical Design Alignment:**
-- Fetch Technical Design at https://waveum.ghe.com/waveum/polaris-documentation/blob/main/docs/technical-design/overview.md
-- Fetch Decision Records at https://waveum.ghe.com/waveum/polaris-documentation/blob/main/docs/decision-records/overview.md
+- Fetch Technical Design at https://github.example.com/your-org/my-documentation/blob/main/docs/technical-design/overview.md
+- Fetch Decision Records at https://github.example.com/your-org/my-documentation/blob/main/docs/decision-records/overview.md
 - Verify changes align with documented architecture
 - Flag deviations
 - Check if new ADRs are needed (ref: `.claude/skills/architecture-decision-records/SKILL.md`)
@@ -377,7 +361,7 @@ After presenting the review findings, ask the user:
 3. **Back it with data** — Every claim must cite evidence. Examples of data-backed arguments:
    - **Code evidence**: "This method is called 14 times across 3 services (grep confirms), so changing its signature is a breaking change"
    - **Performance data**: "This query does a full table scan on `orders` (EXPLAIN shows Seq Scan). With 500K+ rows in production, this will degrade response times beyond the 200ms SLA"
-   - **Pattern evidence**: "The other 8 repositories in Polaris use `@Transactional(readOnly = true)` for read queries — this is the only service that omits it"
+   - **Pattern evidence**: "The other 8 repositories in MyProject use `@Transactional(readOnly = true)` for read queries — this is the only service that omits it"
    - **Specification reference**: "RFC 7807 requires a `type` URI field in error responses (Section 3.1). This endpoint returns `{\"error\": \"not found\"}` instead"
    - **Test coverage**: "This service method has 4 code paths but only 1 test covering the happy path"
    - **Security evidence**: "This field contains PHI and is logged at INFO level. HIPAA §164.312(a)(1) requires access controls on PHI"

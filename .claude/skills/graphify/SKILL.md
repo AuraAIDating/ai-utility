@@ -1,4 +1,4 @@
----
+﻿---
 name: graphify
 description: any input (code, docs, papers, images) → knowledge graph → clustered communities → HTML + JSON + audit report. HIPAA-safe — PHI pre-flight check runs before any extraction; semantic extraction is blocked when PHI indicators are detected.
 trigger: /graphify
@@ -55,7 +55,7 @@ Use it for:
 
 ## HIPAA Safety Guard — Mandatory Before Every Run
 
-Polaris operates in a HIPAA-regulated environment. This skill sends file content to an external LLM (Claude) during semantic extraction (Step 3B). Transmitting real PHI to any external API is a HIPAA violation. These rules are non-negotiable.
+This project operates in a HIPAA-regulated environment. This skill sends file content to an external LLM (Claude) during semantic extraction (Step 3B). Transmitting real PHI to any external API is a HIPAA violation. These rules are non-negotiable.
 
 ### Never run on paths that contain:
 - Real patient data — names, DOB, MRN, SSN, insurance IDs, clinical notes

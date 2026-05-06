@@ -1,11 +1,11 @@
----
+﻿---
 name: api-design
-description: REST API design patterns for Polaris Spring Boot services. Covers OpenAPI-first workflow, SLA contracts, RFC 7807 error responses, tracing headers, URL naming, status codes, pagination, filtering, versioning, and rate limiting.
+description: REST API design patterns for MyProject Spring Boot services. Covers OpenAPI-first workflow, SLA contracts, RFC 7807 error responses, tracing headers, URL naming, status codes, pagination, filtering, versioning, and rate limiting.
 ---
 
 # API Design Patterns
 
-Conventions and best practices for designing consistent, production-grade REST APIs in Polaris
+Conventions and best practices for designing consistent, production-grade REST APIs in MyProject
 Spring Boot 4 services. All new APIs MUST follow the OpenAPI-first workflow below.
 
 ## When to Activate
@@ -19,7 +19,7 @@ Spring Boot 4 services. All new APIs MUST follow the OpenAPI-first workflow belo
 
 ---
 
-## OpenAPI-First Workflow (MANDATORY for All Polaris Services)
+## OpenAPI-First Workflow (MANDATORY for All Project Services)
 
 The OpenAPI spec is the single source of truth for every API contract. Models and interface
 skeletons are generated from the spec — never handwritten.
@@ -29,8 +29,8 @@ skeletons are generated from the spec — never handwritten.
 ```
 1. Write/update spec in src/main/resources/openapi/<service-name>.openapi.yaml
 2. ./gradlew openApiGenerateHelloApi   (or ./gradlew compileJava — wired as dependency)
-3. Generated interface: com.waveum.polaris.<service-name>.api.<Tag>Api
-4. Generated models:    com.waveum.polaris.<service-name>.api.model.<Model>
+3. Generated interface: com.example.myapp.<service-name>.api.<Tag>Api
+4. Generated models:    com.example.myapp.<service-name>.api.model.<Model>
 5. Controller implements <Tag>Api — @Valid on @RequestBody is still required
 6. Tests verify response shape against spec
 ```
@@ -48,8 +48,8 @@ val openApiGenerateHelloApi by tasks.registering(org.openapitools.generator.grad
     generatorName.set("spring")
     inputSpec.set("$projectDir/src/main/resources/openapi/<service-name>.openapi.yaml")
     outputDir.set("$buildDir/generated/src/main/java")
-    apiPackage.set("com.waveum.polaris.<service-name>.api")
-    modelPackage.set("com.waveum.polaris.<service-name>.api.model")
+    apiPackage.set("com.example.myapp.<service-name>.api")
+    modelPackage.set("com.example.myapp.<service-name>.api.model")
     configOptions.set(mapOf(
         "interfaceOnly"         to "true",
         "useSpringBoot3"        to "true",
@@ -75,7 +75,7 @@ tasks.compileJava { dependsOn(openApiGenerateHelloApi) }
 ```yaml
 openapi: "3.1.0"
 info:
-  title: Polaris Order API
+  title: MyProject Order API
   version: "1.0.0"
 
 components:
@@ -173,7 +173,7 @@ public class OrderController implements OrdersApi {
 
 ## SLA Contract
 
-Every Polaris synchronous API endpoint MUST meet these thresholds in production.
+Every MyProject synchronous API endpoint MUST meet these thresholds in production.
 
 | Operation                          | P99 Target | Alert at P95 |
 |------------------------------------|------------|--------------|
@@ -190,7 +190,7 @@ Use `@Timed(percentiles = {0.5, 0.95, 0.99})` on service methods and alert via P
 
 ## Tracing Headers
 
-Every Polaris API request and response MUST carry tracing headers for distributed debugging.
+Every MyProject API request and response MUST carry tracing headers for distributed debugging.
 
 ### Request Headers (inbound)
 
@@ -214,7 +214,7 @@ for correlation across all log lines in a request.
 
 ## RFC 7807 ProblemDetail Error Responses
 
-All Polaris error responses use Spring Boot's built-in `ProblemDetail` (RFC 7807).
+All MyProject error responses use Spring Boot's built-in `ProblemDetail` (RFC 7807).
 Content-Type: `application/problem+json`.
 
 ### Error Response Shape
@@ -427,7 +427,7 @@ Never pass filter values as path segments — use query parameters.
 
 ## Versioning Strategy
 
-Polaris uses URL path versioning as the primary strategy.
+MyProject uses URL path versioning as the primary strategy.
 
 ```
 /api/v1/orders    — current stable
@@ -495,7 +495,7 @@ Authorization: Bearer eyJhbGciOiJSUzI1NiIs...
 X-Request-ID: 550e8400-e29b-41d4-a716-446655440000
 ```
 
-All Polaris APIs require JWT Bearer authentication except:
+All MyProject APIs require JWT Bearer authentication except:
 - `GET /actuator/health`
 - `GET /actuator/info`
 

@@ -1,4 +1,4 @@
----
+﻿---
 name: drift-management
 description: "Detect drift between code/implementation and technical documentation (Technical Design, Decision Records). Identifies where the codebase has diverged from documented architecture, ADRs, or design decisions, and flags undocumented decisions that need new records."
 ---
@@ -34,11 +34,11 @@ The skill accepts an optional scope argument:
 ## Documentation Sources
 
 ### Technical Design
-- **Overview index**: `https://waveum.ghe.com/waveum/polaris-documentation/blob/main/docs/technical-design/overview.md`
+- **Overview index**: `https://github.example.com/your-org/my-documentation/blob/main/docs/technical-design/overview.md`
 - Fetch the overview first, then follow links to component-level design docs scoped to the **current repo**.
 
 ### Decision Records (ADRs / DRs)
-- **Overview index**: `https://waveum.ghe.com/waveum/polaris-documentation/blob/main/docs/decision-records/overview.md`
+- **Overview index**: `https://github.example.com/your-org/my-documentation/blob/main/docs/decision-records/overview.md`
 - Fetch the index, then fetch individual records relevant to the changed code or platform-wide decisions.
 
 **Always fetch fresh content** — never rely on cached or assumed content. If a URL is unreachable, note it in findings and continue with available sources.
@@ -54,8 +54,8 @@ Before launching any agents, identify which service/repo the skill is running in
 ```bash
 # Primary: git remote — gives the full repo URL (used later to match tech design pages)
 git remote get-url origin
-# e.g. https://waveum.ghe.com/waveum/polaris-order-connector
-#   or git@waveum.ghe.com:waveum/polaris-order-connector.git
+# e.g. https://github.example.com/your-org/my-order-connector
+#   or git@github.example.com:your-org/my-order-connector.git
 
 # Fallback: directory name
 basename $(git rev-parse --show-toplevel)
@@ -73,12 +73,12 @@ git rev-parse --show-toplevel
 ```
 
 From this, extract and record:
-- **Repo URL** — the full remote URL (e.g., `https://waveum.ghe.com/waveum/polaris-order-connector`). Used in Step 2 to match tech design pages by repo URL.
-- **Repo name** — the last path segment (e.g., `polaris-order-connector`). Used as a human-readable label.
+- **Repo URL** — the full remote URL (e.g., `https://github.example.com/your-org/my-order-connector`). Used in Step 2 to match tech design pages by repo URL.
+- **Repo name** — the last path segment (e.g., `my-order-connector`). Used as a human-readable label.
 - **Source root** — the first directory that exists from the list above (e.g., `src/main/java`). **All file scanning and reading in Steps 1 and 3 is restricted to this directory.** Never read outside it (no root-level scripts, no `build/`, no `target/`, no `.github/`, no `terraform/` unless the source root IS the repo root and no `src/` variant exists).
 
 If the repo name cannot be determined, ask the user:
-> Which service is this? (e.g., `polaris-order-connector`) — used to scope the technical design lookup.
+> Which service is this? (e.g., `my-order-connector`) — used to scope the technical design lookup.
 
 ---
 
@@ -133,8 +133,8 @@ Each agent receives the detected **repo URL**, repo name, and source root, and m
 
 #### Doc Agent A: Technical Design
 
-1. Fetch `https://waveum.ghe.com/waveum/polaris-documentation/blob/main/docs/technical-design/overview.md`
-2. From the index, find all tech design pages that contain the **repo URL** (e.g., `https://waveum.ghe.com/waveum/polaris-order-connector`) anywhere in their content or metadata. These are the service-specific design docs for this repo.
+1. Fetch `https://github.example.com/your-org/my-documentation/blob/main/docs/technical-design/overview.md`
+2. From the index, find all tech design pages that contain the **repo URL** (e.g., `https://github.example.com/your-org/my-order-connector`) anywhere in their content or metadata. These are the service-specific design docs for this repo.
 3. Also identify pages covering **platform-wide concerns** (auth, observability, inter-service communication, data residency, logging) — these apply to all services regardless of repo URL.
 4. Fetch each matched page in parallel.
 5. Skip pages whose repo URL points to a different service.
@@ -144,10 +144,10 @@ Each agent receives the detected **repo URL**, repo name, and source root, and m
 
 #### Doc Agent B: Decision Records
 
-1. Fetch `https://waveum.ghe.com/waveum/polaris-documentation/blob/main/docs/decision-records/overview.md`
+1. Fetch `https://github.example.com/your-org/my-documentation/blob/main/docs/decision-records/overview.md`
 2. From the index, identify DRs where:
    - The scope/context mentions the current repo, or
-   - The decision is platform-wide (applies to all Polaris services)
+   - The decision is platform-wide (applies to all Project Services)
 3. Fetch each relevant DR in parallel
 4. Return: a structured list of `{ dr-id, title, status, decision, scope: "service" | "platform" }` entries
 
@@ -443,7 +443,7 @@ Once all decisions are collected, present a **Resolution Plan** before touching 
 |---|---------|----------|--------|
 | 1 | `ssn` plain VARCHAR — DR-031 violation | Fix the code | Add `@Convert(converter = AesEncryptedStringConverter.class)` to `PatientEntity.ssn`; update migration to encrypt existing rows |
 | 2 | Sync HTTP to patient-service — TD §4.1 violation | Fix the code | Replace `PatientServiceClient.getPatient()` with a Kafka request-reply pattern; add `PatientRequestedEvent` and `PatientResponseEvent` |
-| 3 | Redis cache — no DR | Create DR | Draft DR-XXX: "Use Redis for session caching in polaris-order-connector" |
+| 3 | Redis cache — no DR | Create DR | Draft DR-XXX: "Use Redis for session caching in my-order-connector" |
 | 4 | Stale SES reference in TD §6.3 | Update doc | Remove §6.3 from the Technical Design or replace with a note that SES was removed in favour of X |
 
 Proceed with this plan? (yes / modify / cancel)
@@ -465,7 +465,7 @@ Only after the user confirms, execute each action **in the order: Critical → H
 
 #### For "Update the documentation" items:
 - If the doc is in the local repo: edit the file directly, show the diff
-- If the doc is in `polaris-documentation` (remote repo): output the exact markdown change needed and the file path, so the user can raise a PR there. Do **not** push or create a PR without being asked.
+- If the doc is in `my-documentation` (remote repo): output the exact markdown change needed and the file path, so the user can raise a PR there. Do **not** push or create a PR without being asked.
 
 #### For "Create a DR" items:
 Draft the DR stub using this template and show it to the user before creating any file:
@@ -493,7 +493,7 @@ Draft the DR stub using this template and show it to the user before creating an
 - <option A>: <why rejected>
 ```
 
-Ask the user to confirm the content, then write the file to the appropriate location in `polaris-documentation`.
+Ask the user to confirm the content, then write the file to the appropriate location in `my-documentation`.
 
 #### After each action:
 Report what was done:

@@ -1,11 +1,11 @@
----
+﻿---
 name: java-development
 description: "Complete Java/Spring Boot development skill: coding standards, naming, immutability, sealed classes, Spring Boot patterns (REST, services, JPA, virtual threads, structured concurrency, weakest-link awareness), unit testing (JUnit 5, Mockito, AssertJ, MockMvc), TDD workflow, code formatting (Spotless), and verification loop (build, static analysis, coverage, security scans)."
 ---
 
 # Java & Spring Boot Development
 
-Complete development guide for Java 21+ / Spring Boot services in Polaris.
+Complete development guide for Java 21+ / Spring Boot services in MyProject.
 
 ## When to Activate
 
@@ -141,7 +141,7 @@ public <T extends Identifiable> Map<Long, T> indexById(Collection<T> items) { ..
 ## Project Structure (Gradle)
 
 ```
-src/main/java/com/waveum/polaris/<service-name>/
+src/main/java/com/your-org/MyProject/<service-name>/
   config/
   controller/
   service/

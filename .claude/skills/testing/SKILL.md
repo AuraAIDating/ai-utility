@@ -1,11 +1,11 @@
----
+﻿---
 name: testing
 description: "BDD acceptance tests (Cucumber + SpringBootTest + Testcontainers) and black-box component tests (Cucumber + Docker container + RestAssured). Covers Gherkin feature files, step definitions, DataTables, async polling, WireMock, and Testcontainers lifecycle for both in-process and containerized testing."
 ---
 
 # Testing Skill
 
-BDD acceptance tests and black-box component tests for Polaris services.
+BDD acceptance tests and black-box component tests for Project Services.
 
 ## When to Activate
 
@@ -108,7 +108,7 @@ public class CucumberSpringConfig {
 @IncludeEngines("cucumber")
 @SelectClasspathResource("features")
 @ConfigurationParameter(key = GLUE_PROPERTY_NAME,
-    value = "com.waveum.polaris.<service-name>.bdd")
+    value = "com.example.myapp.<service-name>.bdd")
 @ConfigurationParameter(key = PLUGIN_PROPERTY_NAME,
     value = "pretty, html:build/reports/cucumber/index.html, json:build/reports/cucumber/results.json")
 @ConfigurationParameter(key = FILTER_TAGS_PROPERTY_NAME,
@@ -330,9 +330,9 @@ public final class ContainerEnvironment {
         new PostgreSQLContainer<>("postgres:16-alpine")
             .withNetwork(NETWORK)
             .withNetworkAliases("postgres")
-            .withDatabaseName("polaris")
-            .withUsername("polaris")
-            .withPassword("polaris");
+            .withDatabaseName("MyProject")
+            .withUsername("MyProject")
+            .withPassword("MyProject");
 
     public static final KafkaContainer KAFKA =
         new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.6.0"))
@@ -340,13 +340,13 @@ public final class ContainerEnvironment {
             .withNetworkAliases("kafka");
 
     public static final GenericContainer<?> APP =
-        new GenericContainer<>("polaris-order-workflow-agent:latest")
+        new GenericContainer<>("my-order-workflow-agent:latest")
             .withNetwork(NETWORK)
             .withExposedPorts(8081)
             .withEnv("SPRING_DATASOURCE_URL",
-                "jdbc:postgresql://postgres:5432/polaris")
-            .withEnv("SPRING_DATASOURCE_USERNAME", "polaris")
-            .withEnv("SPRING_DATASOURCE_PASSWORD", "polaris")
+                "jdbc:postgresql://postgres:5432/MyProject")
+            .withEnv("SPRING_DATASOURCE_USERNAME", "MyProject")
+            .withEnv("SPRING_DATASOURCE_PASSWORD", "MyProject")
             .withEnv("SPRING_KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
             .dependsOn(POSTGRES, KAFKA)
             .waitingFor(Wait.forHttp("/actuator/health")

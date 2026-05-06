@@ -1,11 +1,11 @@
----
+﻿---
 name: python-development
 description: "Python development patterns: project structure, FastAPI for HTTP APIs, async patterns, dependency injection, Pydantic models, pytest unit/component testing, BDD with behave/pytest-bdd, type hints, linting, packaging, and production best practices."
 ---
 
 # Python Development Patterns
 
-Standards and best practices for Python (3.11+) development in Polaris services.
+Standards and best practices for Python (3.11+) development in Project Services.
 
 ## When to Activate
 
@@ -332,13 +332,13 @@ class DomainError(Exception):
 
 class OrderNotFoundError(DomainError):
     status_code = 404
-    error_type = "urn:polaris:error:order-not-found"
+    error_type = "urn:myapp:error:order-not-found"
     title = "Order Not Found"
 
 
 class ValidationError(DomainError):
     status_code = 422
-    error_type = "urn:polaris:error:validation"
+    error_type = "urn:myapp:error:validation"
     title = "Validation Error"
 ```
 
@@ -531,7 +531,7 @@ class TestOrdersAPI:
             "/api/v1/orders/550e8400-e29b-41d4-a716-446655440000"
         )
         assert response.status_code == 404
-        assert response.json()["type"] == "urn:polaris:error:order-not-found"
+        assert response.json()["type"] == "urn:myapp:error:order-not-found"
 ```
 
 ### BDD Tests (pytest-bdd)

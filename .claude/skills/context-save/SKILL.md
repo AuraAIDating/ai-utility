@@ -1,14 +1,14 @@
----
+﻿---
 name: context-save
-description: "Save working session context for Polaris services. Captures git state, decisions made, remaining work, and open questions so any future Claude Code session can resume without losing a beat. Stores context files in .polaris-context/ within the repo. Pair with /context-restore. Adapted from GStack /context-save."
-origin: gstack-adapted
+description: "Save working session context for Project Services. Captures git state, decisions made, remaining work, and open questions so any future Claude Code session can resume without losing a beat. Stores context files in .my-context/ within the repo. Pair with /context-restore. Adapted from community patterns."
+origin: community-adapted
 ---
 
 # Save Working Context
 
 You are a **Staff Engineer keeping meticulous session notes**. Capture the full working context - what's being done, what decisions were made, what's left - so any future session can resume without losing a beat.
 
-**HARD GATE:** Do NOT make code changes. This skill captures state only. Only write to `.polaris-context/` and update `.gitignore` to include it if missing.
+**HARD GATE:** Do NOT make code changes. This skill captures state only. Only write to `.my-context/` and update `.gitignore` to include it if missing.
 
 ---
 
@@ -76,13 +76,13 @@ Run a quick scan against the new context file. If any hits appear, redact before
 ```bash
 echo "=== PHI SCAN: Check for common patterns ==="
 echo "Patient data (MRN, SSN, patient email):"
-grep -rn "patient\|mrn\|ssn\|member_id" .polaris-context/ 2>/dev/null | wc -l
+grep -rn "patient\|mrn\|ssn\|member_id" .my-context/ 2>/dev/null | wc -l
 
 echo "Credentials (API keys, passwords):"
-grep -rn "password\|api.key\|secret\|token" .polaris-context/ 2>/dev/null | wc -l
+grep -rn "password\|api.key\|secret\|token" .my-context/ 2>/dev/null | wc -l
 
 echo "HIPAA-sensitive fields (NPI, email in cleartext):"
-grep -rE "[0-9]{10}|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}" .polaris-context/ | wc -l
+grep -rE "[0-9]{10}|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}" .my-context/ | wc -l
 ```
 
 If any count is non-zero, redact the context before confirming the save.
@@ -107,11 +107,11 @@ Keep the overall context file under 5KB by staying concise.
 ### Step 5: Write context file
 
 ```bash
-mkdir -p .polaris-context
+mkdir -p .my-context
 
-# Ensure .polaris-context/ is gitignored before writing any context files.
+# Ensure .my-context/ is gitignored before writing any context files.
 # PHI leakage risk: context summaries can inadvertently contain patient-adjacent data.
-grep -qxF ".polaris-context/" .gitignore 2>/dev/null || echo ".polaris-context/" >> .gitignore
+grep -qxF ".my-context/" .gitignore 2>/dev/null || echo ".my-context/" >> .gitignore
 
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
@@ -119,14 +119,14 @@ echo "TIMESTAMP=$TIMESTAMP"
 echo "BRANCH=$BRANCH"
 ```
 
-Write to `.polaris-context/${TIMESTAMP}-${TITLE_SLUG}.md` using this structure:
+Write to `.my-context/${TIMESTAMP}-${TITLE_SLUG}.md` using this structure:
 
 ```markdown
 ---
 status: in-progress
 branch: {current branch}
 timestamp: {ISO-8601 timestamp}
-service: {polaris-<service-name> or multi-service}
+service: {my-<service-name> or multi-service}
 feature_area: {api-design | jpa-patterns | kafka-patterns | testing | infrastructure | other}
 jvm_context:
   spring_boot_version: "3.2+"
@@ -152,7 +152,7 @@ phi_scan:
   "branch": "{current branch}",
   "timestamp": "{ISO-8601 timestamp}",
   "status": "in-progress",
-  "service": "polaris-<service-name>",
+  "service": "my-<service-name>",
   "feature_area": "kafka-patterns",
   "what_being_worked_on": "{1-3 sentences}",
   "decisions_made": [
@@ -169,7 +169,7 @@ phi_scan:
     {"question": "{question}", "blocker": true, "assignee": "team"}
   ],
   "notes": [
-    {"type": "useful_command", "content": "./gradlew test --tests \"com.polaris.order.*\""}
+    {"type": "useful_command", "content": "./gradlew test --tests \"com.MyProject.order.*\""}
   ],
   "git_state": {
     "current_branch": "{branch}",
@@ -256,7 +256,7 @@ phi_scan:
 
 ## Useful Commands
 
-- Run this feature's tests: `./gradlew test --tests "com.polaris.order.*"`
+- Run this feature's tests: `./gradlew test --tests "com.MyProject.order.*"`
 - Build without tests (quick): `./gradlew clean assemble -x test`
 - Check what changed since last save: `git diff --stat`
 - Resume investigation if blocked: `/investigate`
@@ -264,7 +264,7 @@ phi_scan:
 
 ## Multi-Service Context (if applicable)
 
-**Primary service**: {polaris-<service-name>}
+**Primary service**: {my-<service-name>}
 **Related services affected**:
 - {service-name} (reason)
 
@@ -297,7 +297,7 @@ Recent commits:
 
 Tell the user:
 ```
-Context saved to .polaris-context/{filename}.md
+Context saved to .my-context/{filename}.md
 Branch: {branch}
 Title: "{title}"
 Resume with: /context-restore
@@ -307,7 +307,7 @@ Resume with: /context-restore
 
 ## Structured JSON Schema (reference)
 
-If you want strict validation, create `.polaris-context/schema.json` (gitignored) with this schema and keep the JSON metadata block aligned.
+If you want strict validation, create `.my-context/schema.json` (gitignored) with this schema and keep the JSON metadata block aligned.
 
 ```json
 {
@@ -435,7 +435,7 @@ If you want strict validation, create `.polaris-context/schema.json` (gitignored
 status: in-progress
 branch: feat/order-consumer-virtual-threads
 timestamp: 2026-04-30T14:15:22Z
-service: polaris-order-consumer
+service: my-order-consumer
 feature_area: kafka-patterns
 jvm_context:
   spring_boot_version: "3.2.4"
@@ -461,7 +461,7 @@ phi_scan:
   "branch": "feat/order-consumer-virtual-threads",
   "timestamp": "2026-04-30T14:15:22Z",
   "status": "in-progress",
-  "service": "polaris-order-consumer",
+  "service": "my-order-consumer",
   "feature_area": "kafka-patterns",
   "what_being_worked_on": "Add idempotent handling for OrderReceived events and tune virtual-thread usage in the consumer pipeline.",
   "decisions_made": [
@@ -479,7 +479,7 @@ phi_scan:
     {"question": "Should DLT include failure codes?", "blocker": false, "assignee": "team"}
   ],
   "notes": [
-    {"type": "useful_command", "content": "./gradlew test --tests \"com.polaris.order.*\""}
+    {"type": "useful_command", "content": "./gradlew test --tests \"com.MyProject.order.*\""}
   ],
   "git_state": {
     "current_branch": "feat/order-consumer-virtual-threads",
@@ -555,16 +555,16 @@ Implement idempotent order handling and DLT metrics for the Kafka consumer. Ensu
 
 ## Useful Commands
 
-- Run this feature's tests: `./gradlew test --tests "com.polaris.order.*"`
+- Run this feature's tests: `./gradlew test --tests "com.MyProject.order.*"`
 - Build without tests (quick): `./gradlew clean assemble -x test`
 
 ## Git state at save
 
 Branch: feat/order-consumer-virtual-threads
 Modified files:
-M src/main/java/com/polaris/order/OrderConsumerService.java
-M src/main/java/com/polaris/order/OrderRepository.java
-M src/test/java/com/polaris/order/OrderConsumerServiceTest.java
+M src/main/java/com/MyProject/order/OrderConsumerService.java
+M src/main/java/com/MyProject/order/OrderRepository.java
+M src/test/java/com/MyProject/order/OrderConsumerServiceTest.java
 
 Recent commits:
 a1b2c3d add idempotent consumer check
@@ -574,9 +574,9 @@ a1b2c3d add idempotent consumer check
 
 ## Context Lifecycle Guidance
 
-- Contexts older than 7 days on merged branches can be deleted: `rm .polaris-context/<old>.md`
+- Contexts older than 7 days on merged branches can be deleted: `rm .my-context/<old>.md`
 - Contexts on active feature branches should be kept until merging
-- Before deleting, archive: `mkdir -p .archives && mv .polaris-context/<old>.md .archives/`
+- Before deleting, archive: `mkdir -p .archives && mv .my-context/<old>.md .archives/`
 - When resuming after 3+ days: check git log since save to understand what changed
 
 ---
@@ -593,7 +593,7 @@ a1b2c3d add idempotent consumer check
 When user types `/context-save list`:
 
 ```bash
-ls -lt .polaris-context/*.md 2>/dev/null | head -10
+ls -lt .my-context/*.md 2>/dev/null | head -10
 ```
 
 Display a numbered list:
@@ -608,10 +608,10 @@ Saved contexts (most recent first):
 
 ## Notes on PHI Safety
 
-Context files are stored in `.polaris-context/` within the repo. **Do NOT include:**
+Context files are stored in `.my-context/` within the repo. **Do NOT include:**
 
 - Real patient data or email addresses in context summaries
 - SMTP credentials, AWS keys, or API tokens
 - PHI from Avro event payloads
 
-`.polaris-context/` is **gitignored by default** (Step 5 adds it automatically). Context files stay local only. In a HIPAA environment, context summaries written during debugging sessions frequently contain patient-adjacent data (order IDs, email addresses, diagnosis codes) - committing them to git risks accidental PHI exposure in the repository history.
+`.my-context/` is **gitignored by default** (Step 5 adds it automatically). Context files stay local only. In a HIPAA environment, context summaries written during debugging sessions frequently contain patient-adjacent data (order IDs, email addresses, diagnosis codes) - committing them to git risks accidental PHI exposure in the repository history.

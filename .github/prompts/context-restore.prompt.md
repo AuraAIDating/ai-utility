@@ -1,6 +1,6 @@
 ---
 mode: agent
-description: "Restore saved working context for Polaris services. Loads the most recent context saved by /context-save and presents it so you can resume work immediately. Reads from .polaris-context/ in the repo. Pair with /context-save. Adapted from GStack /context-restore."
+description: "Restore saved working context for your services. Loads the most recent context saved by /context-save and presents it so you can resume work immediately. Reads from .my-context/ in the repo. Pair with /context-save."
 tools: ["codebase", "githubRepo"]
 ---
 

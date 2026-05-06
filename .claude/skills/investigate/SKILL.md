@@ -1,7 +1,7 @@
----
+﻿---
 name: investigate
-description: "Systematic debugging with root cause investigation for Polaris Spring Boot services. Four phases: investigate, analyze, hypothesize, implement. Iron Law: no fixes without root cause. Covers Kafka consumer failures, HTTP endpoint errors, database issues, external integration failures, Spring Boot runtime failures, virtual thread pinning, memory leaks, structured concurrency, and HIPAA escalation. Adapted from GStack /investigate."
-origin: gstack-adapted
+description: "Systematic debugging with root cause investigation for MyProject Spring Boot services. Four phases: investigate, analyze, hypothesize, implement. Iron Law: no fixes without root cause. Covers Kafka consumer failures, HTTP endpoint errors, database issues, external integration failures, Spring Boot runtime failures, virtual thread pinning, memory leaks, structured concurrency, and HIPAA escalation. Adapted from community patterns."
+origin: community-adapted
 ---
 
 # Systematic Debugging
@@ -107,8 +107,8 @@ grep -r "virtual.enabled\|spring.threads" src/main/resources/ --include="*.yaml"
 ### Step 6 — Reproduce deterministically
 
 ```bash
-./gradlew test --tests "com.waveum.polaris.<service>.<ClassName>" 2>&1
-./gradlew test --info --tests "com.waveum.polaris.<service>.<ClassName>" 2>&1 | tail -50
+./gradlew test --tests "com.example.myapp.<service>.<ClassName>" 2>&1
+./gradlew test --info --tests "com.example.myapp.<service>.<ClassName>" 2>&1 | tail -50
 ```
 
 Output your **root cause hypothesis** before proceeding: a specific, testable claim about what is wrong and why.
@@ -303,7 +303,7 @@ curl -s http://localhost:8080/actuator/metrics/hikaricp.connections.pending
 ### Change log level at runtime (no restart needed)
 
 ```bash
-curl -X POST http://localhost:8080/actuator/loggers/com.waveum.polaris \
+curl -X POST http://localhost:8080/actuator/loggers/com.example.myapp \
   -H "Content-Type: application/json" \
   -d '{"configuredLevel": "DEBUG"}'
 ```
@@ -467,7 +467,7 @@ spring:
 
 ## Structured Concurrency Failures (Java 21+)
 
-`StructuredTaskScope` is used in Polaris for parallel calls with automatic cancellation on failure or timeout.
+`StructuredTaskScope` is used in MyProject for parallel calls with automatic cancellation on failure or timeout.
 
 ### Anatomy of a structured concurrency failure
 
@@ -607,7 +607,7 @@ Do NOT proceed until you can answer: **"The bug is in `<ClassName>.<method>` at 
    ```
 3. **Run the specific test** that was failing:
    ```bash
-   ./gradlew test --tests "com.waveum.polaris.<service>.<ClassName>" 2>&1
+   ./gradlew test --tests "com.example.myapp.<service>.<ClassName>" 2>&1
    ```
 4. **Run the full suite** to check for regressions:
    ```bash
@@ -835,7 +835,7 @@ INVESTIGATION STEPS:
 6. Root cause template:
    "Startup fails because DATABASE_URL env var is not set in the local .env file.
     The application.yaml references \${DATABASE_URL} with no default.
-    Fix: add DATABASE_URL to .env or provide a default: \${DATABASE_URL:jdbc:postgresql://localhost/polaris}"
+    Fix: add DATABASE_URL to .env or provide a default: \${DATABASE_URL:jdbc:postgresql://localhost/MyProject}"
 ```
 
 ---

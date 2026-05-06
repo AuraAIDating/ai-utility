@@ -1,6 +1,6 @@
 ---
 mode: agent
-description: "Review the polaris-ai-utility repo itself — validates skill/prompt/command sync, checks for broken references, ensures consistency across Claude Code, GitHub Copilot, and OpenCode."
+description: "Review the ai-utility repo itself — validates skill/prompt/command sync, checks for broken references, ensures consistency across Claude Code, GitHub Copilot, and OpenCode."
 tools: ["codebase", "githubRepo"]
 ---
 

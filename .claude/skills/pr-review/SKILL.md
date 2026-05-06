@@ -1,4 +1,4 @@
----
+﻿---
 name: pr-review
 description: "Orchestrated PR review that launches parallel sub-agents to check API design, backend patterns, unit/component/BDD tests, healthcare compliance, Kafka, Docker, JPA, Spring Boot, Temporal, and technical design alignment. Collects findings, presents summary, and posts inline PR comments after user approval."
 ---
@@ -170,23 +170,6 @@ Only launch agents that are relevant to the files changed. For example, skip the
 
 ---
 
-#### Agent 5: Healthcare Domain Review
-
-**Skill reference:** `.claude/skills/healthcare-domain/SKILL.md`
-
-**Applies when:** Any files related to healthcare data, PHI, NPI, ICD-10, HCPCS, Medicaid, EDI, or compliance.
-
-**Checks:**
-- HIPAA PHI safeguards (encryption, access controls, audit logging)
-- NPI validation (Luhn algorithm)
-- PECOS status verification
-- ICD-10/HCPCS code validation with Levenshtein distance correction
-- Medicaid/Title XIX requirements
-- X12 EDI 270/271/278 structure validation
-- No PHI in logs, error messages, or exception details
-- Data retention and de-identification policies
-
----
 
 #### Agent 7: Kafka Patterns Review
 
@@ -262,8 +245,8 @@ Only launch agents that are relevant to the files changed. For example, skip the
 **Checks:**
 
 **Technical Design Alignment:**
-- Fetch and review the Technical Design at https://waveum.ghe.com/waveum/polaris-documentation/blob/main/docs/technical-design/overview.md
-- Fetch and review Decision Records at https://waveum.ghe.com/waveum/polaris-documentation/blob/main/docs/decision-records/overview.md
+- Fetch and review the Technical Design at https://github.example.com/your-org/my-documentation/blob/main/docs/technical-design/overview.md
+- Fetch and review Decision Records at https://github.example.com/your-org/my-documentation/blob/main/docs/decision-records/overview.md
 - Verify the PR changes are consistent with documented architecture decisions
 - Flag any deviations from the technical design
 
@@ -368,13 +351,13 @@ The review JSON structure:
 
 ```json
 {
-  "body": "Polaris PR Review - 14 agents, X issues found (Y critical, Z medium, W low)",
+  "body": "PR Review - 14 agents, X issues found (Y critical, Z medium, W low)",
   "event": "COMMENT",
   "comments": [
     {
       "path": "relative/file/path.java",
       "line": 42,
-      "body": "**Critical** (Healthcare): `dateOfBirth` is logged in the error message at line 42. This is PHI under HIPAA and must not appear in logs. Remove the field from the log statement or mask it.\n\n*Ref: healthcare-domain skill - HIPAA PHI safeguards*"
+      "body": "**Critical**: `userId` is logged in the error message at line 42. This is PII and must not appear in logs. Remove the field from the log statement or mask it."
     }
   ]
 }
@@ -406,7 +389,7 @@ rm -rf "$WORKTREE_BASE"
 3. **Back it with data** — Every claim must cite evidence. Examples of data-backed arguments:
    - **Code evidence**: "This method is called 14 times across 3 services (grep confirms), so changing its signature is a breaking change"
    - **Performance data**: "This query does a full table scan on `orders` (EXPLAIN shows Seq Scan). With 500K+ rows in production, this will degrade response times beyond the 200ms SLA"
-   - **Pattern evidence**: "The other 8 repositories in Polaris use `@Transactional(readOnly = true)` for read queries — this is the only service that omits it"
+   - **Pattern evidence**: "The other 8 repositories in MyProject use `@Transactional(readOnly = true)` for read queries — this is the only service that omits it"
    - **Specification reference**: "RFC 7807 requires a `type` URI field in error responses (Section 3.1). This endpoint returns `{\"error\": \"not found\"}` instead"
    - **Test coverage**: "This service method has 4 code paths (2 if-branches x 2 states) but only 1 test covering the happy path. The null-input and error-state paths are untested"
    - **Security evidence**: "This field contains PHI (patient date of birth) and is logged at INFO level on line 42. HIPAA §164.312(a)(1) requires access controls on PHI"

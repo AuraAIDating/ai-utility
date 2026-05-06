@@ -1,19 +1,18 @@
----
+﻿---
 name: kafka-patterns
 description: Apache Kafka producer and consumer patterns for Spring Boot services. Covers KafkaTopics constants, idempotent consumers, DefaultErrorHandler with DLT, producer with completion callback, @EmbeddedKafka unit tests, and Awaitility assertions.
-origin: polaris-hha
 ---
 
 # Kafka Patterns Skill
 
-## HHA Topics Reference
+## Topics Reference
 
 ```java
 public final class KafkaTopics {
-    public static final String HHA_ORDER_RECEIVED       = "hha-order-received";
+    public static final String ORDER_RECEIVED            = "order-received";
     public static final String DOCUMENT_SCAN_RESULTS    = "document-scan-results";
-    public static final String HHA_ORDER_STATE_CHANGES  = "hha-order-state-changes";
-    public static final String HHA_ORDER_RECEIVED_DLT   = "hha-order-received.DLT";
+    public static final String ORDER_STATE_CHANGES       = "order-state-changes";
+    public static final String ORDER_RECEIVED_DLT        = "order-received.DLT";
     public static final String DOCUMENT_SCAN_RESULTS_DLT = "document-scan-results.DLT";
     private KafkaTopics() {}
 }
@@ -28,8 +27,8 @@ public final class KafkaTopics {
 public class KafkaTopicConfig {
 
     @Bean
-    public NewTopic hhaOrderReceivedTopic() {
-        return TopicBuilder.name(KafkaTopics.HHA_ORDER_RECEIVED)
+    public NewTopic orderReceivedTopic() {
+        return TopicBuilder.name(KafkaTopics.ORDER_RECEIVED)
             .partitions(6).replicas(1).build();
     }
 
@@ -40,14 +39,14 @@ public class KafkaTopicConfig {
     }
 
     @Bean
-    public NewTopic hhaOrderStateChangesTopic() {
-        return TopicBuilder.name(KafkaTopics.HHA_ORDER_STATE_CHANGES)
+    public NewTopic orderStateChangesTopic() {
+        return TopicBuilder.name(KafkaTopics.ORDER_STATE_CHANGES)
             .partitions(3).replicas(1).build();
     }
 
     @Bean
-    public NewTopic hhaOrderReceivedDlt() {
-        return TopicBuilder.name(KafkaTopics.HHA_ORDER_RECEIVED_DLT)
+    public NewTopic orderReceivedDlt() {
+        return TopicBuilder.name(KafkaTopics.ORDER_RECEIVED_DLT)
             .partitions(1).replicas(1).build();
     }
 }
@@ -61,11 +60,11 @@ public class KafkaTopicConfig {
 @Service
 public class OrderEventPublisher {
 
-    private final KafkaTemplate<String, HhaOrderReceivedEvent> kafkaTemplate;
+    private final KafkaTemplate<String, OrderReceivedEvent> kafkaTemplate;
 
-    public void publishOrderReceived(HhaOrderReceivedEvent event) {
+    public void publishOrderReceived(OrderReceivedEvent event) {
         kafkaTemplate.send(
-                KafkaTopics.HHA_ORDER_RECEIVED,
+                KafkaTopics.ORDER_RECEIVED,
                 event.orderId().toString(),   // key = orderId for partition locality
                 event)
             .whenComplete((result, ex) -> {
@@ -89,18 +88,18 @@ public class OrderEventPublisher {
 
 ```java
 @Component
-public class HhaOrderReceivedConsumer {
+public class OrderReceivedConsumer {
 
-    private final HhaOrderPersistenceService persistenceService;
+    private final OrderPersistenceService persistenceService;
     private final TemporalWorkflowStarter workflowStarter;
 
     @KafkaListener(
-        topics = KafkaTopics.HHA_ORDER_RECEIVED,
-        groupId = "polaris-order-consumer-group",
+        topics = KafkaTopics.ORDER_RECEIVED,
+        groupId = "my-order-consumer-group",
         containerFactory = "kafkaListenerContainerFactory"
     )
     public void onOrderReceived(
-            @Payload HhaOrderReceivedEvent event,
+            @Payload OrderReceivedEvent event,
             @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
             @Header(KafkaHeaders.OFFSET) long offset,
             Acknowledgment ack) {
@@ -173,9 +172,9 @@ public class KafkaErrorHandlerConfig {
 
 | Service                | Topic                   | Group ID                     |
 |------------------------|-------------------------|------------------------------|
-| polaris-order-consumer | hha-order-received      | polaris-order-consumer-group |
-| polaris-order-consumer | document-scan-results   | polaris-order-consumer-group |
-| polaris-order-agent    | hha-order-state-changes | polaris-order-agent-group    |
+| my-order-consumer | order-received          | my-order-consumer-group |
+| my-order-consumer | document-scan-results   | my-order-consumer-group |
+| my-order-agent    | order-state-changes     | my-order-agent-group    |
 
 ---
 
@@ -201,7 +200,7 @@ spring:
       auto-offset-reset: earliest
       enable-auto-commit: false
       properties:
-        spring.json.trusted.packages: "com.waveum.polaris.*"
+        spring.json.trusted.packages: "com.example.myapp.*"
 ```
 
 ---
@@ -220,7 +219,7 @@ UUID orderId           // the order this event relates to
 Example:
 
 ```java
-public record HhaOrderReceivedEvent(
+public record OrderReceivedEvent(
     UUID eventId,           // REQUIRED
     Instant eventTimestamp, // REQUIRED
     UUID orderId,           // REQUIRED — also used as message key
@@ -240,24 +239,24 @@ public record HhaOrderReceivedEvent(
 @SpringBootTest
 @EmbeddedKafka(
     partitions = 1,
-    topics = {KafkaTopics.HHA_ORDER_RECEIVED, KafkaTopics.HHA_ORDER_RECEIVED_DLT}
+    topics = {KafkaTopics.ORDER_RECEIVED, KafkaTopics.ORDER_RECEIVED_DLT}
 )
-class HhaOrderReceivedConsumerTest {
+class OrderReceivedConsumerTest {
 
     @Autowired
-    private KafkaTemplate<String, HhaOrderReceivedEvent> kafkaTemplate;
+    private KafkaTemplate<String, OrderReceivedEvent> kafkaTemplate;
 
     @MockitoBean
-    private HhaOrderPersistenceService persistenceService;
+    private OrderPersistenceService persistenceService;
 
     @MockitoBean
     private TemporalWorkflowStarter workflowStarter;
 
     @Test
     void onOrderReceived_newOrder_persistsAndStartsWorkflow() throws Exception {
-        HhaOrderReceivedEvent event = buildTestEvent();
+        OrderReceivedEvent event = buildTestEvent();
 
-        kafkaTemplate.send(KafkaTopics.HHA_ORDER_RECEIVED, event.orderId().toString(), event);
+        kafkaTemplate.send(KafkaTopics.ORDER_RECEIVED, event.orderId().toString(), event);
 
         await().atMost(5, SECONDS).untilAsserted(() -> {
             verify(persistenceService).persist(event);
@@ -269,7 +268,7 @@ class HhaOrderReceivedConsumerTest {
     void onOrderReceived_duplicate_skipsProcessing() throws Exception {
         when(persistenceService.existsByOrderId(any())).thenReturn(true);
 
-        kafkaTemplate.send(KafkaTopics.HHA_ORDER_RECEIVED,
+        kafkaTemplate.send(KafkaTopics.ORDER_RECEIVED,
             UUID.randomUUID().toString(), buildTestEvent());
 
         await().atMost(5, SECONDS).untilAsserted(() -> {

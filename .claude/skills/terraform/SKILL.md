@@ -1,13 +1,13 @@
----
+﻿---
 name: terraform
-description: Terraform infrastructure patterns for Polaris services on AWS and Azure. All projects must use S3+DynamoDB remote state (mandatory). Covers module structure, backend configuration, IAM role assumption, environment separation (dev/staging/prod), KMS encryption, security best practices, HIPAA compliance, naming conventions, and multi-cloud (EKS, RDS, VPC, SES, Lambda, AKS, APIM).
+description: Terraform infrastructure patterns for Project Services on AWS and Azure. All projects must use S3+DynamoDB remote state (mandatory). Covers module structure, backend configuration, IAM role assumption, environment separation (dev/staging/prod), KMS encryption, security best practices, HIPAA compliance, naming conventions, and multi-cloud (EKS, RDS, VPC, SES, Lambda, AKS, APIM).
 ---
 
 # Terraform Patterns
 
-Terraform best practices derived from `polaris-email-integration` and `polaris-infra`. All Polaris infrastructure is AWS-first with a secondary Azure footprint. These patterns are mandatory for all new Terraform code.
+Terraform best practices derived from `my-email-integration` and `my-infra`. All project infrastructure is AWS-first with a secondary Azure footprint. These patterns are mandatory for all new Terraform code.
 
-**Core Mandate:** All Polaris Terraform projects — whether service-specific or shared infrastructure — must use S3 + DynamoDB remote state with KMS encryption. Local state is prohibited. This is a security and compliance requirement.
+**Core Mandate:** All Project Terraform projects — whether service-specific or shared infrastructure — must use S3 + DynamoDB remote state with KMS encryption. Local state is prohibited. This is a security and compliance requirement.
 
 ## When to Activate
 
@@ -17,7 +17,7 @@ Terraform best practices derived from `polaris-email-integration` and `polaris-i
 - Setting up remote state or backend configuration
 - Managing environment separation (dev / staging / prod)
 - Designing IAM roles, KMS encryption, or secrets management
-- Configuring EKS, RDS, VPC, SES, Lambda, or other Polaris-used services
+- Configuring EKS, RDS, VPC, SES, Lambda, or other my-used services
 
 ---
 
@@ -25,7 +25,7 @@ Terraform best practices derived from `polaris-email-integration` and `polaris-i
 
 All Terraform lives under a `terraform/` root. Split by cloud provider, then by environment-directories + reusable modules.
 
-**Single-Service Repos** (e.g., polaris-email-integration):
+**Single-Service Repos** (e.g., my-email-integration):
 ```
 terraform/aws/
 ├── environments/
@@ -66,7 +66,7 @@ terraform/aws/
 │   └── smtp_user/
 ```
 
-**Multi-Component Repos** (e.g., polaris-infra — shared infrastructure):
+**Multi-Component Repos** (e.g., my-infra — shared infrastructure):
 ```
 terraform/aws/
 ├── environments/
@@ -133,18 +133,18 @@ terraform {
 
 ## Remote State (AWS S3 + DynamoDB)
 
-**All Polaris Terraform — whether service-specific or shared infrastructure — must use S3-backed remote state with DynamoDB locking.** Never use local state. Local state is a security risk that violates HIPAA audit requirements and creates deployment coupling to individual developers.
+**All Project Terraform — whether service-specific or shared infrastructure — must use S3-backed remote state with DynamoDB locking.** Never use local state. Local state is a security risk that violates HIPAA audit requirements and creates deployment coupling to individual developers.
 
 ```hcl
 # terraform/aws/environments/dev/infra/terraform.tf
 # Mandatory for all service and infra repos
 terraform {
   backend "s3" {
-    bucket         = "polaris-dev-tf-statefiles"
+    bucket         = "my-dev-tf-statefiles"
     region         = "us-east-1"
     encrypt        = true
-    profile        = "waveum-dev"
-    dynamodb_table = "polaris-dev-tf-state-lock"
+    profile        = "your-org-dev"
+    dynamodb_table = "my-dev-tf-state-lock"
     key            = "terraform/aws/environments/dev/infra/terraform.tfstate"
   }
 }
@@ -155,14 +155,14 @@ terraform {
 - `dynamodb_table` is mandatory for distributed locking (prevents concurrent applies and state corruption).
 - Each environment sub-directory, and each service repo, gets its own `key` path — never share a state file between unrelated resources or across repos.
 - State file is never committed to git (always in `.gitignore`).
-- Use the AWS CLI profile (`profile = "waveum-dev"`) rather than static credentials.
+- Use the AWS CLI profile (`profile = "your-org-dev"`) rather than static credentials.
 - **All repos — service or infra — require S3 + DynamoDB backend.** Pre-provision the backend S3 bucket and DynamoDB table as part of environment bootstrap (terraform-init responsibility, not developer responsibility).
 
 ---
 
 ## Running Terraform (Per-Environment Directories)
 
-**Single-Service Repos** (e.g., polaris-email-integration):
+**Single-Service Repos** (e.g., my-email-integration):
 
 ```bash
 # Dev
@@ -184,7 +184,7 @@ terraform plan
 terraform apply
 ```
 
-**Multi-Component Repos** (e.g., polaris-infra):
+**Multi-Component Repos** (e.g., my-infra):
 
 ```bash
 # Deploy a single component (e.g., VPC in dev)
@@ -208,7 +208,7 @@ terraform apply
 
 ## AWS Provider: Role Assumption
 
-Polaris services assume a dedicated deploy role rather than using long-lived credentials:
+Project Services assume a dedicated deploy role rather than using long-lived credentials:
 
 ```hcl
 # terraform/aws/environments/dev/ses-email/providers.tf
@@ -216,7 +216,7 @@ provider "aws" {
   region = var.aws_region
 
   assume_role {
-    role_arn = "arn:aws:iam::${var.aws_account_id}:role/waveum-polaris-ses-terraform-deploy-role"
+    role_arn = "arn:aws:iam::${var.aws_account_id}:role/your-org-ses-terraform-deploy-role"
   }
 }
 ```
@@ -225,14 +225,14 @@ provider "aws" {
 - Every service must have its own scoped deploy role (least privilege).
 - The deploy role policy lives alongside the Terraform code in `policies/<role>-policies.json`.
 - Use `assume_role` in the provider block — never pass `access_key` / `secret_key` directly.
-- For polaris-infra (shared infra), use an AWS CLI profile instead: `profile = "waveum-dev"` in the provider block.
-- Example deploy role ARN: `arn:aws:iam::183047399597:role/waveum-polaris-ses-terraform-deploy-role`
+- For my-infra (shared infra), use an AWS CLI profile instead: `profile = "your-org-dev"` in the provider block.
+- Example deploy role ARN: `arn:aws:iam::<your-aws-account-id>:role/your-org-ses-terraform-deploy-role`
 
 ---
 
 ## Backend Module (S3 + DynamoDB)
 
-Every Polaris project must create and manage its own S3 bucket + DynamoDB table for Terraform state. Use the reusable `modules/backend/` pattern:
+Every this project must create and manage its own S3 bucket + DynamoDB table for Terraform state. Use the reusable `modules/backend/` pattern:
 
 ```hcl
 # modules/backend/s3.tf
@@ -342,14 +342,14 @@ All resource names follow: **`${project_name}-${environment}-${resource_type}[-s
 
 | Resource | Pattern | Example |
 |----------|---------|---------|
-| S3 bucket | `${project}-${env}-${purpose}-${random_hex}` | `polaris-ses-email-processing-dev-email-storage-a1b2c3` |
-| KMS alias | `alias/${project}-${env}-key` | `alias/polaris-ses-email-processing-dev-key` |
-| IAM role | `${project}-${env}-${role}` | `polaris-ses-email-processing-dev-lambda-role` |
-| Lambda | `${project}-${env}-${function}` | `polaris-ses-email-processing-dev-email-processor` |
-| CloudWatch log group | `/aws/${service}/${project}-${env}-${purpose}` | `/aws/ses/polaris-ses-email-processing-dev-email-processing` |
-| Secrets Manager | `${project}-${env}-${purpose}` | `polaris-ses-email-processing-dev-smtp-credentials` |
-| EKS cluster | `${project}-${env}` | `waveum-dev` |
-| VPC | `${project}-${env}-vpc` | `waveum-dev-vpc` |
+| S3 bucket | `${project}-${env}-${purpose}-${random_hex}` | `my-ses-email-processing-dev-email-storage-a1b2c3` |
+| KMS alias | `alias/${project}-${env}-key` | `alias/my-ses-email-processing-dev-key` |
+| IAM role | `${project}-${env}-${role}` | `my-ses-email-processing-dev-lambda-role` |
+| Lambda | `${project}-${env}-${function}` | `my-ses-email-processing-dev-email-processor` |
+| CloudWatch log group | `/aws/${service}/${project}-${env}-${purpose}` | `/aws/ses/my-ses-email-processing-dev-email-processing` |
+| Secrets Manager | `${project}-${env}-${purpose}` | `my-ses-email-processing-dev-smtp-credentials` |
+| EKS cluster | `${project}-${env}` | `your-org-dev` |
+| VPC | `${project}-${env}-vpc` | `your-org-dev-vpc` |
 
 **Rules:**
 - No uppercase letters. Use hyphens, not underscores, in resource names.
@@ -368,7 +368,7 @@ locals {
     Project     = var.project_name
     Environment = var.environment
     ManagedBy   = "Terraform"
-    Owner       = "devops"         # for polaris-infra team-owned resources
+    Owner       = "devops"         # for my-infra team-owned resources
   }
 }
 ```
@@ -452,8 +452,8 @@ environments/
 environment             = "dev"
 kms_deletion_window     = 7
 log_retention_days      = 7
-recipient_emails        = ["agent@dev.polaris.waveum.io"]
-notification_sender_domain = "dev.polaris.waveum.io"
+recipient_emails        = ["agent@dev.example.myproject.io"]
+notification_sender_domain = "dev.example.myproject.io"
 ```
 
 ```hcl
@@ -461,8 +461,8 @@ notification_sender_domain = "dev.polaris.waveum.io"
 environment             = "prod"
 kms_deletion_window     = 30          # Maximum protection
 log_retention_days      = 2557        # 7 years — HIPAA compliance
-recipient_emails        = ["agent@polaris.waveum.io"]
-notification_sender_domain = "polaris.waveum.io"
+recipient_emails        = ["agent@example.myproject.io"]
+notification_sender_domain = "example.myproject.io"
 ```
 
 **Rules:**
@@ -474,7 +474,7 @@ notification_sender_domain = "polaris.waveum.io"
 
 ## KMS Encryption
 
-Every Polaris environment uses a Customer-Managed Key (CMK) for sensitive data. Create one CMK per environment:
+Every MyProject environment uses a Customer-Managed Key (CMK) for sensitive data. Create one CMK per environment:
 
 ```hcl
 # modules/kms/main.tf
@@ -725,7 +725,7 @@ resource "aws_secretsmanager_secret_version" "smtp_credentials" {
 
 ## VPC Design (AWS)
 
-Standard CIDR allocation for Polaris environments:
+Standard CIDR allocation for Project Environments:
 
 ```hcl
 module "vpc" {
@@ -798,8 +798,8 @@ terraform {
   }
 
   backend "azurerm" {
-    resource_group_name  = "polaris-tfstate-rg"
-    storage_account_name = "polaristfstate"
+    resource_group_name  = "my-tfstate-rg"
+    storage_account_name = "MyProjecttfstate"
     container_name       = "tfstate"
     key                  = "dev/terraform.tfstate"
   }
@@ -851,16 +851,16 @@ Before every `terraform apply` or PR merge, verify:
 
 ## Reference Implementations
 
-**polaris-email-integration** — Single-service Terraform project with S3 + DynamoDB state:
+**my-email-integration** — Single-service Terraform project with S3 + DynamoDB state:
 - Per-environment directories: `environments/dev/ses-email/`, `environments/staging/ses-email/`, `environments/prod/ses-email/`
 - Reusable `modules/backend/`, `modules/kms/`, `modules/s3/`, etc.
 - Bootstrap pattern for creating state backend
-- Reference: `polaris-email-integration`
+- Reference: `my-email-integration`
 
-**polaris-infra** — Multi-component shared infrastructure:
+**my-infra** — Multi-component shared infrastructure:
 - Per-component directories: `environments/dev/infra/`, `environments/dev/eks/`, `environments/dev/db/`, etc.
 - Each component has independent state file
-- Reference: `polaris-infra`
+- Reference: `my-infra`
 
 Both projects demonstrate the **same core pattern**: remote S3 + DynamoDB state with KMS encryption.
 

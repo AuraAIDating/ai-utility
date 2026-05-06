@@ -1,6 +1,6 @@
-# Polaris AI Utility
+﻿# AI Utility
 
-A shared repository of AI skills, prompts, and commands for use across all Polaris project repos. This repo contains no application source code -- it serves as the **single source of truth** for AI coding assistant knowledge used during development.
+A shared repository of AI skills, prompts, and commands for use across all this project repos. This repo contains no application source code -- it serves as the **single source of truth** for AI coding assistant knowledge used during development.
 
 Skills are authored once as Claude Code skill files (`.claude/skills/`) and are automatically available to **three AI assistants**: Claude Code, GitHub Copilot, and OpenCode. GitHub Copilot prompts and OpenCode commands are thin wrappers that delegate to the Claude skill files, so there is only one place to maintain content.
 
@@ -41,12 +41,11 @@ $ARGUMENTS
 | Skill | Description |
 |-------|-------------|
 | `docker-patterns` | Docker/Docker Compose patterns for local development, security, networking, and multi-service orchestration |
-| `terraform` | Terraform infrastructure patterns for Polaris services on AWS and Azure. **All projects (service or shared infra) must use S3+DynamoDB remote state.** Covers module structure, remote state backends, IAM role assumption, environment separation (dev/staging/prod), KMS encryption, security best practices, HIPAA compliance, naming conventions, and multi-cloud (EKS, RDS, VPC, SES, Lambda, AKS, APIM) |
+| `terraform` | Terraform infrastructure patterns for Project Services on AWS and Azure. **All projects (service or shared infra) must use S3+DynamoDB remote state.** Covers module structure, remote state backends, IAM role assumption, environment separation (dev/staging/prod), KMS encryption, security best practices, HIPAA compliance, naming conventions, and multi-cloud (EKS, RDS, VPC, SES, Lambda, AKS, APIM) |
 
 ### Domain
 | Skill | Description |
 |-------|-------------|
-| `healthcare-domain` | Healthcare compliance: HIPAA PHI safeguards, NPI validation, ICD-10/HCPCS codes, X12 EDI, Medicaid requirements |
 | `graphify` | Any input (code, docs, papers, images) to knowledge graph with clustered communities, HTML + JSON + audit report. HIPAA-safe with PHI pre-flight check |
 
 ### Orchestrated Reviews
@@ -59,7 +58,7 @@ $ARGUMENTS
 
 Both `review` and `pr-review` skills:
 - Launch parallel sub-agents for each review domain (only agents relevant to the changed files)
-- Validate changes against the [Technical Design](https://waveum.ghe.com/waveum/polaris-documentation/blob/main/docs/technical-design/overview.md) and [Decision Records](https://waveum.ghe.com/waveum/polaris-documentation/blob/main/docs/decision-records/overview.md)
+- Validate changes against the [Technical Design](https://github.example.com/your-org/my-documentation/blob/main/docs/technical-design/overview.md) and [Decision Records](https://github.example.com/your-org/my-documentation/blob/main/docs/decision-records/overview.md)
 - Check NFRs: performance, scalability, availability, security, observability, reliability, maintainability, compliance
 - Scan for PII/PHI exposure (direct identifiers and quasi-identifier combinations)
 - Categorize findings by severity: Critical, High, Medium, Low, Info
@@ -97,9 +96,6 @@ Skills activate **automatically** -- you don't need to invoke them. Claude match
 # Claude activates testing because you're asking about BDD scenarios
 > Write BDD scenarios for the order submission flow
 
-# Claude activates healthcare-domain because NPI is a healthcare concept
-> Validate the NPI number before saving the provider
-
 # Multiple skills can activate at once -- java-development + jpa-patterns + api-design
 > Create a paginated GET endpoint with JPA repository for orders
 ```
@@ -109,7 +105,7 @@ You can also invoke skills explicitly as slash commands:
 ```
 # Explicit invocation -- identical to commands
 /review
-/pr-review https://waveum.ghe.com/waveum/polaris-order-connector/pull/42
+/pr-review https://github.example.com/your-org/my-order-connector/pull/42
 /java-development create a service for order processing
 ```
 
@@ -143,13 +139,10 @@ You can also invoke skills explicitly as slash commands:
 /review
 
 # Review a specific PR
-/pr-review https://waveum.ghe.com/waveum/polaris-order-connector/pull/42
+/pr-review https://github.example.com/your-org/my-order-connector/pull/42
 
 # Run the self-review
 /review-ai-utility
-
-# Use healthcare skill for compliance check
-/healthcare-domain check if this endpoint handles PHI correctly
 ```
 
 ### GitHub Copilot Prompts
@@ -167,17 +160,11 @@ You can also invoke skills explicitly as slash commands:
 # As a slash command in Copilot Chat
 @workspace /java-development create a service for order processing
 
-# Review a PR
-@workspace /pr-review https://waveum.ghe.com/waveum/polaris-order-connector/pull/42
-
 # Review local changes
 @workspace /review
 
 # Check testing patterns
 @workspace /testing write component tests for the eligibility endpoint
-
-# Healthcare compliance
-@workspace /healthcare-domain verify PHI handling in the patient API
 ```
 
 ### Summary: Loading and Activation
@@ -199,7 +186,7 @@ You can also invoke skills explicitly as slash commands:
 - [OpenCode Documentation](https://opencode.ai/docs) -- Getting started with OpenCode
 - [OpenCode Commands](https://opencode.ai/docs/commands) -- Custom command configuration
 
-## Automatic Sync to Polaris Repos
+## Automatic Sync to Project Repos
 
 A GitHub Actions workflow (`.github/workflows/sync-ai-config.yml`) keeps downstream repos in sync with this utility.
 
@@ -211,8 +198,8 @@ A GitHub Actions workflow (`.github/workflows/sync-ai-config.yml`) keeps downstr
    - `.github/prompts/` -- GitHub Copilot prompts
    - `.opencode/` -- OpenCode commands
 3. **PR creation**: Creates a PR in each target repo with:
-   - **Title**: `fix(POL-00): Synced AI Skills`
-   - **Description**: `Synced AI skills from Polaris AI Utility`
+   - **Title**: `fix(PROJ-00): Synced AI Skills`
+   - **Description**: `Synced AI skills from AI Utility`
    - **Branch**: `chore/sync-ai-config`
    - **Labels**: `automation`, `ai-config`
 4. **Merge**: A team member in each target repo reviews and merges the sync PR
@@ -223,9 +210,9 @@ The `--delete` flag in rsync ensures that skills removed from this repo are also
 
 ### Currently synced repos
 
-- [polaris-order-connector](https://waveum.ghe.com/waveum/polaris-order-connector)
-- [polaris-order-workflow-agent](https://waveum.ghe.com/waveum/polaris-order-workflow-agent)
-- [polaris-notification-service](https://waveum.ghe.com/waveum/polaris-notification-service)
+- [my-order-connector](https://github.example.com/your-org/my-order-connector)
+- [my-order-workflow-agent](https://github.example.com/your-org/my-order-workflow-agent)
+- [my-notification-service](https://github.example.com/your-org/my-notification-service)
 
 ### Adding a new repo to the sync
 
@@ -233,17 +220,17 @@ The `--delete` flag in rsync ensures that skills removed from this repo are also
 2. Add a new entry to the `matrix.target` array:
    ```yaml
    target:
-     - { repo: "waveum/polaris-order-connector" }
-     - { repo: "waveum/polaris-order-workflow-agent" }
-     - { repo: "waveum/polaris-notification-service" }
-     - { repo: "waveum/polaris-your-new-service" }   # <-- add here
+     - { repo: "your-org/my-order-connector" }
+     - { repo: "your-org/my-order-workflow-agent" }
+     - { repo: "your-org/my-notification-service" }
+     - { repo: "your-org/my-your-new-service" }   # <-- add here
    ```
 3. Ensure the `AI_UTILITY_TOKEN` secret has write access to the new repo
 4. Merge to `main` -- the workflow will trigger and create a sync PR in the new repo
 
 ### Required secret
 
-`AI_UTILITY_TOKEN` -- a GitHub Enterprise Personal Access Token with `repo` scope and write access to all target repos. This secret is configured in the repository settings of `polaris-ai-utility`.
+`AI_UTILITY_TOKEN` -- a GitHub Enterprise Personal Access Token with `repo` scope and write access to all target repos. This secret is configured in the repository settings of `ai-utility`.
 
 ### What happens when you merge a PR to this repo
 
@@ -257,14 +244,13 @@ The `--delete` flag in rsync ensures that skills removed from this repo are also
 ## Project Structure
 
 ```
-polaris-ai-utility/
+ai-utility/
 ├── .claude/
 │   └── skills/                       # 15 Claude Code skill definitions
 │       ├── api-design/
 │       ├── docker-patterns/
 │       ├── drift-management/         # Drift detection: code vs Technical Design + Decision Records
 │       ├── graphify/
-│       ├── healthcare-domain/
 │       ├── java-development/         # Combined: coding standards + Spring Boot + testing + TDD + formatting + verification
 │       ├── jpa-patterns/
 │       ├── kafka-patterns/

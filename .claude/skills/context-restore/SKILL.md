@@ -1,7 +1,7 @@
----
+﻿---
 name: context-restore
-description: "Restore saved working context for Polaris services. Loads the most recent context saved by /context-save and presents it so you can resume work immediately. Reads from .polaris-context/ in the repo. Pair with /context-save. Adapted from GStack /context-restore."
-origin: gstack-adapted
+description: "Restore saved working context for Project Services. Loads the most recent context saved by /context-save and presents it so you can resume work immediately. Reads from .my-context/ in the repo. Pair with /context-save. Adapted from community patterns."
+origin: community-adapted
 ---
 
 # Restore Working Context
@@ -37,10 +37,10 @@ You are a **Staff Engineer reading a colleague's session notes** to pick up exac
 ### Step 1: Find saved contexts
 
 ```bash
-ls -lt .polaris-context/*.md 2>/dev/null | head -10
+ls -lt .my-context/*.md 2>/dev/null | head -10
 ```
 
-If no `.polaris-context/` directory or no files found — see **Graceful Failure Handling** below.
+If no `.my-context/` directory or no files found — see **Graceful Failure Handling** below.
 
 If multiple contexts exist, show the timeline (see **Context Timeline Visualization**) and auto-load the most recent one. Inform the user which was loaded.
 
@@ -375,7 +375,7 @@ Common patterns:
 ### No context found
 
 ```
-No saved contexts found in .polaris-context/
+No saved contexts found in .my-context/
 
 This can happen if:
 - /context-save has not been run yet
@@ -398,7 +398,7 @@ Options:
 No context found matching "{search-term}".
 
 Available contexts:
-{numbered list of all .polaris-context/*.md files}
+{numbered list of all .my-context/*.md files}
 
 Options:
 1. Try /context-restore <number>
@@ -427,7 +427,7 @@ Your work was likely merged or rebased. Check:
 
 If merged to main:
   -> Your work is done. Archive this context:
-     mkdir -p .archives && mv .polaris-context/<file>.md .archives/
+     mkdir -p .archives && mv .my-context/<file>.md .archives/
 
 If rebased onto a new branch:
   -> Switch to the new branch and resume:
@@ -440,9 +440,9 @@ If rebased onto a new branch:
 ## Context Lifecycle Reminder
 
 - Contexts older than 7 days on merged branches can be deleted:
-  `rm .polaris-context/<old>.md`
+  `rm .my-context/<old>.md`
 - Archive before deleting:
-  `mkdir -p .archives && mv .polaris-context/<old>.md .archives/`
+  `mkdir -p .archives && mv .my-context/<old>.md .archives/`
 - When resuming after 3+ days, always check what changed:
   `git log --oneline --since="3 days ago"`
 

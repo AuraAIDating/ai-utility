@@ -1,11 +1,11 @@
----
+﻿---
 name: review-ai-utility
-description: "Review the polaris-ai-utility repo itself — validates skill/prompt/command sync, checks for broken references, ensures consistency across Claude Code, GitHub Copilot, and OpenCode. Works on local uncommitted changes or a PR link."
+description: "Review the ai-utility repo itself — validates skill/prompt/command sync, checks for broken references, ensures consistency across Claude Code, GitHub Copilot, and OpenCode. Works on local uncommitted changes or a PR link."
 ---
 
 # Review AI Utility Skill
 
-Self-review skill for the polaris-ai-utility repository. Validates that all AI skills, GitHub Copilot prompts, and OpenCode commands are consistent, correctly linked, and follow project conventions.
+Self-review skill for the ai-utility repository. Validates that all AI skills, GitHub Copilot prompts, and OpenCode commands are consistent, correctly linked, and follow project conventions.
 
 ## When to Activate
 

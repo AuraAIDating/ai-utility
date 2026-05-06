@@ -1,7 +1,7 @@
-name: Sync AI Config to Polaris Repos
+name: Sync AI Config to Project Repos
 
 # Syncs .claude, .github/prompts, and .opencode directories from this utility repo
-# to all downstream Polaris service repos on merge to main.
+# to all downstream service repos on merge to main.
 
 on:
   push:
@@ -19,18 +19,14 @@ jobs:
     strategy:
       matrix:
         # ──────────────────────────────────────────────────────────────────
-        # ADD NEW REPOS HERE as the team creates new Polaris services.
+        # ADD NEW REPOS HERE as the team creates new services.
         # Format: { repo: "<org>/<repo-name>" }
         # ──────────────────────────────────────────────────────────────────
         target:
-          - { repo: "waveum/polaris-order-connector" }
-          - { repo: "waveum/polaris-order-workflow-agent" }
-          - { repo: "waveum/polaris-notification-service" }
-          - { repo: "waveum/polaris-psr-document-scanner" }
-          - { repo: "waveum/polaris-infra" }
-          - { repo: "waveum/polaris-email-integration" }
-          - { repo: "waveum/polaris-training-modeling" }
-          # - { repo: "waveum/polaris-<new-service>" }
+          - { repo: "your-org/my-order-connector" }
+          - { repo: "your-org/my-order-workflow-agent" }
+          - { repo: "your-org/my-notification-service" }
+          # - { repo: "your-org/my-<new-service>" }
 
     steps:
       - name: Debug secret access
@@ -49,7 +45,7 @@ jobs:
         with:
           app-id: ${{ secrets.AI_BOT_APP_ID }}
           private-key: ${{ secrets.AI_BOT_PRIVATE_KEY }}
-          owner: waveum
+          owner: your-org
 
       - name: Checkout source (this repo)
         uses: actions/checkout@v4
@@ -66,18 +62,11 @@ jobs:
 
       - name: Sync directories
         run: |
-          # Directories to sync from this utility repo to each target repo.
-          # Uses rsync to add/update files without deleting target-only files.
-          # Add or remove directories here if the sync scope changes.
           SYNC_DIRS=(".claude" ".github/prompts" ".opencode")
 
           for dir in "${SYNC_DIRS[@]}"; do
             if [ -d "source/${dir}" ]; then
               mkdir -p "target/${dir}"
-              # --archive preserves permissions/timestamps
-              # --delete removes files in target that no longer exist in source
-              #   (only within synced dirs — not the whole repo)
-              # Remove --delete if target repos should keep their own additions
               rsync --archive --delete "source/${dir}/" "target/${dir}/"
               echo "Synced: ${dir}"
             else
@@ -91,9 +80,9 @@ jobs:
         with:
           path: target
           token: ${{ steps.bot-token.outputs.token }}
-          commit-message: "fix(POL-00): Synced AI Skills"
-          title: "fix(POL-00): Synced AI Skills"
-          body: "Synced AI skills from Polaris AI Utility"
+          commit-message: "chore: sync AI skills"
+          title: "chore: sync AI skills"
+          body: "Synced AI skills from AI Utility"
           branch: chore/sync-ai-config
           delete-branch: true
           labels: automation, ai-config
@@ -102,5 +91,4 @@ jobs:
         if: steps.create-pr.outputs.pull-request-number != ''
         run: gh pr merge --auto --squash "${{ steps.create-pr.outputs.pull-request-number }}" --repo "${{ matrix.target.repo }}"
         env:
-          GH_HOST: waveum.ghe.com
           GH_TOKEN: ${{ steps.bot-token.outputs.token }}
